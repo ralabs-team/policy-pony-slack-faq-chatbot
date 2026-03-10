@@ -10,7 +10,7 @@ const receiver = new ExpressReceiver({
   // processBeforeResponse ensures the handler completes before Bolt sends 200 to Slack.
   // Required for Vercel — without this the serverless function may terminate mid-handler.
   processBeforeResponse: true,
-  endpoints: '/',
+  endpoints: '/api/slack',
 });
 
 const app = new App({
