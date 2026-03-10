@@ -1,7 +1,7 @@
 const { randomUUID } = require('crypto');
 const { ingestDocument, deleteDocument, listDocuments } = require('../services/ingestion');
-const { detectHrIntent } = require('../services/claude');
-const { downloadSlackFile } = require('../utils/slackFile');
+const { detectHrIntent } = require('../services/llm');
+const { downloadSlackFile } = require('../utils/slack');
 const { handleEmployeeDm } = require('./employeeHandler');
 const log = require('../utils/logger');
 

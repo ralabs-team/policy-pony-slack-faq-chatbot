@@ -1,6 +1,6 @@
 const { embedText } = require('./embeddings');
 const { searchSimilarChunks } = require('./supabase');
-const { generateAnswer } = require('./claude');
+const { generateAnswer } = require('./llm');
 const log = require('../utils/logger');
 
 const MATCH_THRESHOLD = 0.2;

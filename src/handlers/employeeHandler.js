@@ -1,5 +1,5 @@
 const { query: ragQuery } = require('../services/rag');
-const { NOT_FOUND_MESSAGE, isSmallTalk, generateSmallTalkResponse } = require('../services/claude');
+const { NOT_FOUND_MESSAGE, isSmallTalk, generateSmallTalkResponse } = require('../services/llm');
 const { logUnansweredQuestion, logAudit } = require('../services/supabase');
 const log = require('../utils/logger');
 
