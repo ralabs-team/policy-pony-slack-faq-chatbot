@@ -3,10 +3,6 @@ const { generateNotFoundResponse, isSmallTalk, generateSmallTalkResponse } = req
 const { logUnansweredQuestion, logAudit } = require('../services/supabase');
 const log = require('../utils/logger');
 
-const AI_FOOTER =
-  '\n\n_I\'m an AI assistant. For sensitive matters, please contact HR directly._';
-
-
 async function handleEmployeeDm({ message, client }) {
   const { channel, ts, thread_ts, text, user } = message;
   if (!text || text.trim() === '') return;
@@ -15,10 +11,19 @@ async function handleEmployeeDm({ message, client }) {
   const preview = text.slice(0, 80).replace(/\n/g, ' ');
   log.info('QUERY', `🔍 ${log.who(user)}: "${preview}"`);
 
+  // Require at least 3 characters
+  if (text.trim().length < 3) {
+    return client.chat.postMessage({
+      channel,
+      thread_ts: threadTs,
+      text: "Could you give me a bit more to go on? Send at least a few characters and I'll do my best to help.",
+      unfurl_links: false,
+    });
+  }
+
   // Signal that the bot is thinking
-  await client.reactions
-    .add({ name: 'hourglass_flowing_sand', channel, timestamp: ts })
-    .catch(() => {});
+  await client.reactions.add({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+  await client.reactions.add({ name: 'robot_face', channel, timestamp: ts }).catch(() => {});
 
   try {
     const history = await getThreadHistory(client, channel, threadTs, ts);
@@ -96,25 +101,17 @@ async function handleEmployeeDm({ message, client }) {
       }
     }
 
-    await client.reactions
-      .add({ name: 'white_check_mark', channel, timestamp: ts })
-      .catch(() => {});
-    await client.reactions
-      .add({ name: 'unicorn', channel, timestamp: ts })
-      .catch(() => {});
+    await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+    await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
   } catch (err) {
     log.error('QUERY', `Failed to handle message from ${log.who(user)}`, err);
     await client.chat.postMessage({
       channel,
       thread_ts: threadTs,
-      text:
-        'Sorry, I ran into an error processing your request. Please try again or contact HR directly.' +
-        AI_FOOTER,
+      text: 'Sorry, I ran into an error processing your request. Please try again.',
     });
   } finally {
-    await client.reactions
-      .remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts })
-      .catch(() => {});
+    await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
   }
 }
 
