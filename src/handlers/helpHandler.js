@@ -1,3 +1,4 @@
+const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
 const HR_USER_IDS = (process.env.HR_USER_IDS || '')
@@ -39,7 +40,9 @@ async function handleHelp({ ack, body, client }) {
   const userId = body.user_id;
   const text = isHrAdmin(userId) ? HR_HELP : EMPLOYEE_HELP;
 
-  log.info('HELP', `📖 /help requested by ${userId} [${isHrAdmin(userId) ? 'HR admin' : 'employee'}]`);
+  const role = isHrAdmin(userId) ? 'hr_admin' : 'employee';
+  log.info('HELP', `📖 /help requested by ${userId} [${role}]`);
+  analytics.track(userId, 'Help Viewed', { role });
 
   await client.chat.postEphemeral({
     channel: body.channel_id,

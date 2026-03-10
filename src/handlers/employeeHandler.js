@@ -1,6 +1,7 @@
 const { query: ragQuery } = require('../services/rag');
 const { NOT_FOUND_MESSAGE, isSmallTalk, generateSmallTalkResponse } = require('../services/llm');
 const { logUnansweredQuestion, logAudit } = require('../services/supabase');
+const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
 async function handleEmployeeDm({ message, client }) {
@@ -13,6 +14,7 @@ async function handleEmployeeDm({ message, client }) {
 
   // Require at least 3 characters
   if (text.trim().length < 3) {
+    analytics.track(user, 'Message Too Short', { message: text });
     return client.chat.postMessage({
       channel,
       thread_ts: threadTs,
@@ -20,6 +22,8 @@ async function handleEmployeeDm({ message, client }) {
       unfurl_links: false,
     });
   }
+
+  analytics.identify(user);
 
   // Signal that the bot is thinking
   await client.reactions.add({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
@@ -31,6 +35,7 @@ async function handleEmployeeDm({ message, client }) {
 
     // Protect context window — ask user to start a new thread if history is too long
     if (history.length >= 10) {
+      analytics.track(user, 'Thread Too Long', { thread_length: history.length });
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       return client.chat.postMessage({
         channel,
@@ -43,6 +48,7 @@ async function handleEmployeeDm({ message, client }) {
     // If the user sends a greeting, respond warmly without running RAG
     const GREETINGS = /^(hi|hey|hello|howdy|hiya|sup|yo|greetings|good morning|good afternoon|good evening|привіт|добрий день|добридень|доброго ранку)[\s!.,]*$/i;
     if (GREETINGS.test(text.trim())) {
+      analytics.track(user, 'Greeting');
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
@@ -57,6 +63,7 @@ async function handleEmployeeDm({ message, client }) {
     // If the user replies with a short affirmative to "anything else?", ask them to specify
     const AFFIRMATIVES = /^(yes|yeah|yep|yup|sure|ok|okay|please|go ahead|tell me more|more|and\??)\.?!?$/i;
     if (AFFIRMATIVES.test(text.trim()) && history.length > 0) {
+      analytics.track(user, 'Follow Up Request');
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
@@ -70,6 +77,8 @@ async function handleEmployeeDm({ message, client }) {
 
     const result = await ragQuery(text, history);
 
+    analytics.track(user, 'Message Received', { question: text, thread_length: history.length });
+
     if (result) {
       log.info('QUERY', `✅ Answer found — cited: "${result.citedDoc || 'n/a'}"${result.isSensitive ? ' [sensitive topic]' : ''}`);
 
@@ -80,6 +89,12 @@ async function handleEmployeeDm({ message, client }) {
         unfurl_links: false,
       });
       log.info('QUERY', `💬 Reply sent to ${log.who(user)}`);
+
+      if (result.isSensitive) {
+        analytics.track(user, 'Sensitive Topic', { question: text });
+      } else {
+        analytics.track(user, 'Answer Found', { question: text, cited_doc: result.citedDoc || null });
+      }
 
       await logAudit({
         userId: user,
@@ -94,10 +109,12 @@ async function handleEmployeeDm({ message, client }) {
 
       if (smallTalk) {
         log.info('QUERY', `💬 Small talk from ${log.who(user)} — not logged as unanswered`);
+        analytics.track(user, 'Small Talk', { message: text });
         const reply = await generateSmallTalkResponse(text);
         await client.chat.postMessage({ channel, thread_ts: threadTs, text: reply, unfurl_links: false });
       } else {
         log.warn('QUERY', `No answer found for ${log.who(user)}: "${preview}" — logged as unanswered`);
+        analytics.track(user, 'Answer Not Found', { question: text });
         await logUnansweredQuestion({ userId: user, questionText: text, threadTs, channel });
         await client.chat.postMessage({ channel, thread_ts: threadTs, text: NOT_FOUND_MESSAGE });
         await logAudit({

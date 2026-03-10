@@ -3,6 +3,7 @@ const { ingestDocument, deleteDocument, listDocuments } = require('../services/i
 const { detectHrIntent } = require('../services/llm');
 const { downloadSlackFile } = require('../utils/slack');
 const { handleEmployeeDm } = require('./employeeHandler');
+const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
 const HR_USER_IDS = (process.env.HR_USER_IDS || '')
@@ -35,6 +36,7 @@ async function handleHrAdminDm({ message, client }) {
 
   if (intent.action === 'list') {
     log.info('HR', `📋 ${log.who(user)} requested document list`);
+    analytics.track(user, 'Doc List Viewed');
     return handleListDocuments(client, channel, ts);
   }
 
@@ -218,6 +220,11 @@ async function handleBlockAction({ ack, body, client, action }) {
 
       const verb = pending.type === 'update' ? 'updated' : 'added';
       log.info('HR', `🎉 Doc "${pending.docName}" successfully ${verb}`);
+      analytics.track(pending.userId, pending.type === 'update' ? 'Doc Updated' : 'Doc Uploaded', {
+        doc_name: pending.docName,
+        filename: pending.file.name,
+        size_kb: Math.round(pending.file.size / 1024),
+      });
       await client.chat.update({
         channel,
         ts: body.message.ts,
@@ -226,6 +233,7 @@ async function handleBlockAction({ ack, body, client, action }) {
     } else if (pending.type === 'delete') {
       await deleteDocument(pending.docName);
       log.info('HR', `🗑️  Doc "${pending.docName}" deleted`);
+      analytics.track(pending.userId, 'Doc Deleted', { doc_name: pending.docName });
       await client.chat.update({
         channel,
         ts: body.message.ts,
