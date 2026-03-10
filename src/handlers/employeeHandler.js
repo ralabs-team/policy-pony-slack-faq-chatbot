@@ -1,5 +1,5 @@
 const { query: ragQuery } = require('../services/rag');
-const { generateNotFoundResponse, isSmallTalk, generateSmallTalkResponse } = require('../services/claude');
+const { NOT_FOUND_MESSAGE, isSmallTalk, generateSmallTalkResponse } = require('../services/claude');
 const { logUnansweredQuestion, logAudit } = require('../services/supabase');
 const log = require('../utils/logger');
 
@@ -28,6 +28,17 @@ async function handleEmployeeDm({ message, client }) {
   try {
     const history = await getThreadHistory(client, channel, threadTs, ts);
     log.info('QUERY', `📜 Thread context: ${history.length} previous message(s)`);
+
+    // Protect context window — ask user to start a new thread if history is too long
+    if (history.length >= 10) {
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({
+        channel,
+        thread_ts: threadTs,
+        text: "This thread is getting quite long and I'm losing context. Could you start a new thread and ask your question there?",
+        unfurl_links: false,
+      });
+    }
 
     // If the user sends a greeting, respond warmly without running RAG
     const GREETINGS = /^(hi|hey|hello|howdy|hiya|sup|yo|greetings|good morning|good afternoon|good evening|привіт|добрий день|добридень|доброго ранку)[\s!.,]*$/i;
@@ -88,8 +99,7 @@ async function handleEmployeeDm({ message, client }) {
       } else {
         log.warn('QUERY', `No answer found for ${log.who(user)}: "${preview}" — logged as unanswered`);
         await logUnansweredQuestion({ userId: user, questionText: text, threadTs, channel });
-        const notFoundMsg = await generateNotFoundResponse(text);
-        await client.chat.postMessage({ channel, thread_ts: threadTs, text: notFoundMsg });
+        await client.chat.postMessage({ channel, thread_ts: threadTs, text: NOT_FOUND_MESSAGE });
         await logAudit({
           userId: user,
           userType: 'employee',
@@ -108,7 +118,7 @@ async function handleEmployeeDm({ message, client }) {
     await client.chat.postMessage({
       channel,
       thread_ts: threadTs,
-      text: 'Sorry, I ran into an error processing your request. Please try again.',
+      text: 'Something went wrong. Please try again.',
     });
   } finally {
     await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
@@ -131,13 +141,6 @@ async function getThreadHistory(client, channel, threadTs, currentTs) {
         content: m.text || '',
       }))
       .filter((m) => m.content.trim() !== '');
-
-    if (messages.length >= 10) {
-      messages.unshift({
-        role: 'user',
-        content: '[Note: earlier messages in this thread were truncated. Please start a new thread if context is missing.]',
-      });
-    }
 
     return messages;
   } catch {

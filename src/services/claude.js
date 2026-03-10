@@ -131,27 +131,7 @@ async function extractDocName(text) {
   }
 }
 
-/**
- * Generate a "not found" message in the same language as the user's question.
- */
-async function generateNotFoundResponse(question) {
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 120,
-      messages: [
-        {
-          role: 'system',
-          content: `Write a short, informal and friendly message saying you couldn't find the answer to that HR-related question. Keep it conversational — like a helpful colleague, not a corporate system. Do NOT suggest contacting any specific person. Respond in the SAME language as the employee's question. If the question is in English, you MUST reply in English. If in Ukrainian, reply in Ukrainian. Default to English if unsure.`,
-        },
-        { role: 'user', content: question },
-      ],
-    });
-    return response.choices[0].message.content.trim();
-  } catch {
-    return "I couldn't find an answer to your question in the HR policy documents.";
-  }
-}
+const NOT_FOUND_MESSAGE = "Hmm, I couldn't find anything on that. Is there anything else I can help you with?";
 
 /**
  * Returns true if the message is small talk / chit-chat with no HR intent.
@@ -197,4 +177,4 @@ async function generateSmallTalkResponse(text) {
   }
 }
 
-module.exports = { generateAnswer, generateNotFoundResponse, detectHrIntent, isSmallTalk, generateSmallTalkResponse };
+module.exports = { generateAnswer, NOT_FOUND_MESSAGE, detectHrIntent, isSmallTalk, generateSmallTalkResponse };
