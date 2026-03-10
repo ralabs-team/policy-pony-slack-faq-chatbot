@@ -58,19 +58,7 @@ app.action('delete_doc_request', handleDeleteDocRequest);
 // /help slash command
 app.command('/help', handleHelp);
 
-// ── Periodic memory monitor ────────────────────────────────────────────────
-// Logs heap usage every 30 s so you can see if memory grows at idle.
-// If it climbs steadily even with no user activity, the leak is in Bolt/Supabase init.
-// If it's flat until an upload, the leak is in the ingestion pipeline.
-setInterval(() => {
-  const { heapUsed, heapTotal } = process.memoryUsage();
-  const used = (heapUsed / 1024 / 1024).toFixed(0);
-  const total = (heapTotal / 1024 / 1024).toFixed(0);
-  log.info('MEM', `heap ${used} MB used / ${total} MB allocated`);
-}, 30_000);
-
 (async () => {
   await app.start();
-  log.info('MEM', `startup heap: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(0)} MB`);
   console.log('🦄 Policy Pony is running!');
 })();
