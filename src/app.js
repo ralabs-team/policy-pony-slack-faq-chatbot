@@ -26,6 +26,14 @@ receiver.app.use((req, res, next) => {
   next();
 });
 
+// Drop Slack retries — Slack retries if no 200 within 3s, causing duplicate responses on Vercel.
+receiver.app.use((req, res, next) => {
+  if (req.headers['x-slack-retry-num']) {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   receiver,
