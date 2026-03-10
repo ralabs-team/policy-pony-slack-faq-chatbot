@@ -1,7 +1,3 @@
-const { execFile } = require('child_process');
-const { writeFile, unlink } = require('fs/promises');
-const { tmpdir } = require('os');
-const { join } = require('path');
 const { embedText } = require('./embeddings');
 const {
   upsertDocument,
@@ -146,38 +142,10 @@ async function parseDocument(buffer, mimetype, filename) {
   throw new Error(`Unsupported file type "${mimetype || ext}". Please upload a PDF, DOCX, or TXT file.`);
 }
 
-/**
- * Extract text from a PDF using pdftotext (poppler).
- * Runs in a child process — zero heap impact on the main Node process.
- * Images and graphics are automatically skipped.
- * Requires: brew install poppler
- */
 async function parsePdf(buffer) {
-  const tmpFile = join(tmpdir(), `policy-pony-${Date.now()}.pdf`);
-  await writeFile(tmpFile, buffer);
-
-  try {
-    const text = await new Promise((resolve, reject) => {
-      // '-' as output file means write to stdout
-      const env = {
-        ...process.env,
-        PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH || ''}`,
-      };
-      execFile('pdftotext', ['-enc', 'UTF-8', '-nopgbrk', tmpFile, '-'], { env }, (err, stdout, stderr) => {
-        if (err) {
-          reject(new Error(
-            `pdftotext failed: ${err.message}\n` +
-            `Make sure poppler is installed: brew install poppler`
-          ));
-        } else {
-          resolve(stdout);
-        }
-      });
-    });
-    return text;
-  } finally {
-    await unlink(tmpFile).catch(() => {});
-  }
+  const pdfParse = require('pdf-parse');
+  const { text } = await pdfParse(buffer);
+  return text;
 }
 
 module.exports = { ingestDocument, deleteDocument, listDocuments };
