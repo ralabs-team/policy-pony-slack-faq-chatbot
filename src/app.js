@@ -1,4 +1,5 @@
 const { App, ExpressReceiver, LogLevel } = require('@slack/bolt');
+const express = require('express');
 const { handleDmMessage } = require('./handlers/dmMessage');
 const { handleBlockAction, handleDeleteDocRequest } = require('./handlers/hrAdminHandler');
 const { handleHelp } = require('./handlers/helpHandler');
@@ -11,6 +12,18 @@ const receiver = new ExpressReceiver({
   // Required for Vercel — without this the serverless function may terminate mid-handler.
   processBeforeResponse: true,
   endpoints: '/api/slack',
+});
+
+// Parse JSON bodies before the URL verification check
+receiver.app.use(express.json());
+
+// Handle Slack URL verification challenge explicitly before Bolt processes anything.
+// Slack sends this as a plain JSON POST — no signature verification needed.
+receiver.app.use((req, res, next) => {
+  if (req.body && req.body.type === 'url_verification') {
+    return res.json({ challenge: req.body.challenge });
+  }
+  next();
 });
 
 const app = new App({
