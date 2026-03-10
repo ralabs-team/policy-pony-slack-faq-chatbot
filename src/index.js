@@ -14,7 +14,6 @@ const REQUIRED_ENV = [
   'SLACK_BOT_TOKEN',
   'SLACK_APP_TOKEN',
   'SLACK_SIGNING_SECRET',
-  'ANTHROPIC_API_KEY',
   'OPENAI_API_KEY',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
@@ -58,7 +57,30 @@ app.action('delete_doc_request', handleDeleteDocRequest);
 // /help slash command
 app.command('/help', handleHelp);
 
+async function validateHrUserIds() {
+  const hrIds = (process.env.HR_USER_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
+  if (hrIds.length === 0) {
+    log.warn('STARTUP', '⚠️  HR_USER_IDS is not set — no one will have HR admin access');
+    return;
+  }
+
+  try {
+    const result = await app.client.users.list({ limit: 1000 });
+    const slackIds = new Set((result.members || []).map((u) => u.id));
+    const invalid = hrIds.filter((id) => !slackIds.has(id));
+
+    if (invalid.length > 0) {
+      log.warn('STARTUP', `⚠️  HR_USER_IDS contains unknown Slack user(s): ${invalid.join(', ')} — they will not have HR admin access`);
+    } else {
+      log.info('STARTUP', `✅ HR_USER_IDS validated — ${hrIds.length} admin(s) confirmed`);
+    }
+  } catch (err) {
+    log.warn('STARTUP', `⚠️  Could not validate HR_USER_IDS — Slack users.list failed: ${err.message}`);
+  }
+}
+
 (async () => {
   await app.start();
+  await validateHrUserIds();
   console.log('🦄 Policy Pony is running!');
 })();
