@@ -27,7 +27,7 @@ function randomPick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-async function handleEmployeeDm({ message, client }) {
+async function handleEmployeeDm({ message, client, skipPreferenceCheck = false }) {
   const { channel, ts, thread_ts, text, user } = message;
   if (!text || text.trim() === '') return;
 
@@ -102,44 +102,48 @@ async function handleEmployeeDm({ message, client }) {
 
     // For employment-sensitive questions, check stored preference or ask
     let questionForRag = text;
-    if (NEEDS_EMPLOYMENT_TYPE.test(text)) {
-      const employmentType = await getUserPreference(user, 'employment_type');
-      if (employmentType) {
-        questionForRag = `I am a ${employmentType} employee. ${text}`;
-        log.info('QUERY', `Using stored employment type: ${employmentType}`);
-      } else {
-        await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
-        await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
-        await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
-        return client.chat.postMessage({
-          channel,
-          thread_ts: threadTs,
-          text: 'To give you the right answer — are you a full-time employee or a contractor?',
-          blocks: [
-            {
-              type: 'section',
-              text: { type: 'mrkdwn', text: 'To give you the right answer — are you a full-time employee or a contractor?' },
-            },
-            {
-              type: 'actions',
-              elements: [
-                {
-                  type: 'button',
-                  text: { type: 'plain_text', text: 'Full-time employee' },
-                  action_id: 'set_employment_type',
-                  value: `full-time|${text}`,
-                },
-                {
-                  type: 'button',
-                  text: { type: 'plain_text', text: 'Contractor' },
-                  action_id: 'set_employment_type',
-                  value: `contractor|${text}`,
-                },
-              ],
-            },
-          ],
-          unfurl_links: false,
-        });
+    if (!skipPreferenceCheck && NEEDS_EMPLOYMENT_TYPE.test(text)) {
+      try {
+        const employmentType = await getUserPreference(user, 'employment_type');
+        if (employmentType) {
+          questionForRag = `I am a ${employmentType} employee. ${text}`;
+          log.info('QUERY', `Using stored employment type: ${employmentType}`);
+        } else {
+          await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+          await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+          await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+          return client.chat.postMessage({
+            channel,
+            thread_ts: threadTs,
+            text: 'To give you the right answer — are you a full-time employee or a contractor?',
+            blocks: [
+              {
+                type: 'section',
+                text: { type: 'mrkdwn', text: 'To give you the right answer — are you a full-time employee or a contractor?' },
+              },
+              {
+                type: 'actions',
+                elements: [
+                  {
+                    type: 'button',
+                    text: { type: 'plain_text', text: 'Full-time employee' },
+                    action_id: 'set_employment_type',
+                    value: `full-time|${text}`,
+                  },
+                  {
+                    type: 'button',
+                    text: { type: 'plain_text', text: 'Contractor' },
+                    action_id: 'set_employment_type',
+                    value: `contractor|${text}`,
+                  },
+                ],
+              },
+            ],
+            unfurl_links: false,
+          });
+        }
+      } catch (prefErr) {
+        log.warn('QUERY', `Preference check failed, falling through to RAG: ${prefErr.message}`);
       }
     }
 
