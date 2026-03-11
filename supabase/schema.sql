@@ -56,7 +56,17 @@ CREATE TABLE IF NOT EXISTS audit_log (
   timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Disable RLS on all bot tables (server-side bot uses service role — RLS not needed)
+-- 7. User preferences (employment type etc., cached for 30 days)
+CREATE TABLE IF NOT EXISTS user_preferences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, key)
+);
+
+-- 8. Disable RLS on all bot tables (server-side bot uses service role — RLS not needed)
 ALTER TABLE policy_documents DISABLE ROW LEVEL SECURITY;
 ALTER TABLE document_chunks DISABLE ROW LEVEL SECURITY;
 ALTER TABLE unanswered_questions DISABLE ROW LEVEL SECURITY;

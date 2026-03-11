@@ -1,8 +1,11 @@
 const { query: ragQuery } = require('../services/rag');
 const { NOT_FOUND_MESSAGE } = require('../services/llm');
-const { logUnansweredQuestion, logAudit } = require('../services/supabase');
+const { logUnansweredQuestion, logAudit, getUserPreference } = require('../services/supabase');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
+
+// Questions where the answer differs for full-time employees vs contractors
+const NEEDS_EMPLOYMENT_TYPE = /\b(benefit|sick\s*leave|sick\s*day|equipment|laptop|hardware|onboard|offboard|educat|certif|reimburs|insurance|compens)\b/i;
 
 const GREETINGS_EN = /^(hi|hey|hello|howdy|hiya|sup|yo|greetings|good morning|good afternoon|good evening)[\s!.,]*$/i;
 const GREETINGS_UA = /^(привіт|добрий день|добридень|доброго ранку|вітаю)[\s!.,]*$/i;
@@ -97,7 +100,50 @@ async function handleEmployeeDm({ message, client }) {
       });
     }
 
-    const result = await ragQuery(text, history);
+    // For employment-sensitive questions, check stored preference or ask
+    let questionForRag = text;
+    if (NEEDS_EMPLOYMENT_TYPE.test(text)) {
+      const employmentType = await getUserPreference(user, 'employment_type');
+      if (employmentType) {
+        questionForRag = `I am a ${employmentType} employee. ${text}`;
+        log.info('QUERY', `Using stored employment type: ${employmentType}`);
+      } else {
+        await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+        await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+        await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+        return client.chat.postMessage({
+          channel,
+          thread_ts: threadTs,
+          text: 'To give you the right answer — are you a full-time employee or a contractor?',
+          blocks: [
+            {
+              type: 'section',
+              text: { type: 'mrkdwn', text: 'To give you the right answer — are you a full-time employee or a contractor?' },
+            },
+            {
+              type: 'actions',
+              elements: [
+                {
+                  type: 'button',
+                  text: { type: 'plain_text', text: 'Full-time employee' },
+                  action_id: 'set_employment_type',
+                  value: `full-time|${text}`,
+                },
+                {
+                  type: 'button',
+                  text: { type: 'plain_text', text: 'Contractor' },
+                  action_id: 'set_employment_type',
+                  value: `contractor|${text}`,
+                },
+              ],
+            },
+          ],
+          unfurl_links: false,
+        });
+      }
+    }
+
+    const result = await ragQuery(questionForRag, history);
 
     analytics.track(user, 'Message Received', { question: text, thread_length: history.length });
 

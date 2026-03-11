@@ -75,6 +75,30 @@ async function searchSimilarChunks(embedding, matchCount = 5, matchThreshold = 0
   return data || [];
 }
 
+// ── User preferences ───────────────────────────────────────────────────────
+
+const PREFERENCE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+async function getUserPreference(userId, key) {
+  const expiryDate = new Date(Date.now() - PREFERENCE_TTL_MS).toISOString();
+  const { data, error } = await supabase
+    .from('user_preferences')
+    .select('value')
+    .eq('user_id', userId)
+    .eq('key', key)
+    .gt('updated_at', expiryDate)
+    .single();
+  if (error) return null;
+  return data?.value || null;
+}
+
+async function setUserPreference(userId, key, value) {
+  const { error } = await supabase
+    .from('user_preferences')
+    .upsert({ user_id: userId, key, value, updated_at: new Date().toISOString() }, { onConflict: 'user_id,key' });
+  if (error) console.error('Failed to set user preference:', error.message);
+}
+
 // ── Logging ────────────────────────────────────────────────────────────────
 
 async function logUnansweredQuestion({ userId, questionText, threadTs, channel }) {
@@ -107,6 +131,8 @@ module.exports = {
   insertChunks,
   deleteChunksByDocName,
   searchSimilarChunks,
+  getUserPreference,
+  setUserPreference,
   logUnansweredQuestion,
   logAudit,
 };
