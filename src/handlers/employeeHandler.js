@@ -1,8 +1,28 @@
 const { query: ragQuery } = require('../services/rag');
-const { NOT_FOUND_MESSAGE, isSmallTalk, generateSmallTalkResponse } = require('../services/llm');
+const { NOT_FOUND_MESSAGE } = require('../services/llm');
 const { logUnansweredQuestion, logAudit } = require('../services/supabase');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
+
+const GREETINGS_EN = /^(hi|hey|hello|howdy|hiya|sup|yo|greetings|good morning|good afternoon|good evening)[\s!.,]*$/i;
+const GREETINGS_UA = /^(привіт|добрий день|добридень|доброго ранку|вітаю)[\s!.,]*$/i;
+
+const SMALL_TALK = /^(thanks|thank you|thx|ty|дякую|спасибо|дяки|супер|добре|окей|ок|great|cool|awesome|nice|perfect|got it|understood|makes sense|sounds good|no worries|no problem|you('re| are) welcome|haha|lol|😊|👍|bye|goodbye|see you|бувай|до побачення|як справи|how are you|i('m| am) (good|fine|ok|great)|not bad)[\s!.,?]*$/i;
+
+const SMALL_TALK_REPLIES_EN = [
+  "Happy to help! What's your question?",
+  "Sure thing! What would you like to know?",
+  "Of course! What can I help you with?",
+];
+const SMALL_TALK_REPLIES_UA = [
+  "Звісно! Чим можу допомогти?",
+  "Залюбки! Що хочеш дізнатися?",
+  "Гаразд! Яке у тебе питання?",
+];
+
+function randomPick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 async function handleEmployeeDm({ message, client }) {
   const { channel, ts, thread_ts, text, user } = message;
@@ -46,8 +66,10 @@ async function handleEmployeeDm({ message, client }) {
     }
 
     // If the user sends a greeting, respond warmly without running RAG
-    const GREETINGS = /^(hi|hey|hello|howdy|hiya|sup|yo|greetings|good morning|good afternoon|good evening|привіт|добрий день|добридень|доброго ранку)[\s!.,]*$/i;
-    if (GREETINGS.test(text.trim())) {
+    const trimmed = text.trim();
+    const isUaGreeting = GREETINGS_UA.test(trimmed);
+    const isEnGreeting = GREETINGS_EN.test(trimmed);
+    if (isUaGreeting || isEnGreeting) {
       analytics.track(user, 'Greeting');
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
@@ -55,7 +77,7 @@ async function handleEmployeeDm({ message, client }) {
       return client.chat.postMessage({
         channel,
         thread_ts: threadTs,
-        text: "Hey! What can I help you with today?",
+        text: isUaGreeting ? "Привіт! Чим можу допомогти?" : "Hey! What can I help you with today?",
         unfurl_links: false,
       });
     }
@@ -105,12 +127,13 @@ async function handleEmployeeDm({ message, client }) {
         citedDoc: result.citedDoc || null,
       });
     } else {
-      const smallTalk = await isSmallTalk(text);
+      const isUA = /[а-яіїєґА-ЯІЇЄҐ]/.test(text);
+      const smallTalk = SMALL_TALK.test(text.trim());
 
       if (smallTalk) {
         log.info('QUERY', `💬 Small talk from ${log.who(user)} — not logged as unanswered`);
         analytics.track(user, 'Small Talk', { message: text });
-        const reply = await generateSmallTalkResponse(text);
+        const reply = randomPick(isUA ? SMALL_TALK_REPLIES_UA : SMALL_TALK_REPLIES_EN);
         await client.chat.postMessage({ channel, thread_ts: threadTs, text: reply, unfurl_links: false });
       } else {
         log.warn('QUERY', `No answer found for ${log.who(user)}: "${preview}" — logged as unanswered`);

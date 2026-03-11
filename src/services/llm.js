@@ -133,48 +133,4 @@ async function extractDocName(text) {
 
 const NOT_FOUND_MESSAGE = "Hmm, I couldn't find anything on that. Is there anything else I can help you with?";
 
-/**
- * Returns true if the message is small talk / chit-chat with no HR intent.
- */
-async function isSmallTalk(text) {
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 5,
-      messages: [
-        {
-          role: 'system',
-          content: 'Classify the message as either "smalltalk" or "question". "smalltalk" means casual conversation with no HR or work policy intent (e.g. greetings, how are you, thanks, jokes). "question" means anything related to work, HR, policies, benefits, holidays, or a genuine request for information. Reply with exactly one word: smalltalk or question.',
-        },
-        { role: 'user', content: text },
-      ],
-    });
-    return response.choices[0].message.content.trim().toLowerCase() === 'smalltalk';
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Generate a friendly small talk reply in the same language as the user's message.
- */
-async function generateSmallTalkResponse(text) {
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 60,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a friendly HR assistant bot. Reply briefly and warmly to the casual message. Keep it short (max 15 words). Respond in the same language as the message. Do not use emojis.',
-        },
-        { role: 'user', content: text },
-      ],
-    });
-    return response.choices[0].message.content.trim();
-  } catch {
-    return "Ha, I'm just an HR bot — but happy to help with any work questions!";
-  }
-}
-
-module.exports = { generateAnswer, NOT_FOUND_MESSAGE, detectHrIntent, isSmallTalk, generateSmallTalkResponse };
+module.exports = { generateAnswer, NOT_FOUND_MESSAGE, detectHrIntent };
