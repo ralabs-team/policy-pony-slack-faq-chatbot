@@ -8,9 +8,10 @@ const log = require('./utils/logger');
 
 const receiver = new ExpressReceiver({
   signingSecret: process.env.SLACK_SIGNING_SECRET,
-  // processBeforeResponse is intentionally false: Bolt ACKs Slack immediately,
-  // then processes the message in the background. Vercel keeps the function
-  // running until completion, so replies still get posted.
+  // processBeforeResponse: true ensures the handler fully completes before Bolt
+  // sends 200 to Slack. Required on Vercel — without it the function is terminated
+  // after the response, killing the handler before chat.postMessage is called.
+  processBeforeResponse: true,
   endpoints: '/api/slack',
 });
 
