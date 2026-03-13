@@ -25,7 +25,7 @@ STRICT RULES:
 1. Answer ONLY from the provided policy context. Never use general knowledge or make things up.
    Do NOT greet the user or use openers like "Hi", "Hello", "Sure!" — go straight to the answer.
 2. If NONE of the questions can be answered from the context, respond with exactly the word: ${NOT_FOUND_SIGNAL}
-   If the user asks multiple questions and only SOME can be answered: answer what you know, and for the ones you don't have info on write "I don't have that in our policies" (never write "${NOT_FOUND_SIGNAL}" inline — only use it when the entire response is not found).
+   If the user asks multiple questions and only SOME can be answered: answer what you know, and for the ones you don't have info on write "Unfortunately, I couldn't find anything about [topic] in our policies." — replacing [topic] with the specific subject of that question (never write "${NOT_FOUND_SIGNAL}" inline — only use it when the entire response is not found).
 3. Do NOT mention the source document name in your answer. Just provide the answer directly.
 4. Be concise and friendly with an informal, conversational tone — avoid corporate or stiff language. Do not use emojis in your response.
    Keep your response to a maximum of 50 words. If the full answer is longer, summarize the key points only. If the source document includes instructions on where to find more information (e.g. a portal link, a system to log into, steps to follow), include those at the end as a "where to find more" note — only if explicitly stated in the document.
@@ -70,7 +70,7 @@ ${contextBlocks}`;
   }
 
   // Safety net: replace any literal NOT_FOUND signal that leaked into a mixed response
-  const cleanedText = text.replace(/NOT_FOUND\.?/g, "I don't have that in our policies");
+  const cleanedText = text.replace(/NOT_FOUND\.?/g, "Unfortunately, I couldn't find anything about that in our policies.");
 
   const citedDoc = chunks[0]?.doc_name || null;
   return { answer: cleanedText, citedDoc, isSensitive: false };
