@@ -97,6 +97,19 @@ async function handleEmployeeDm({ message, client }) {
       });
     }
 
+    // Easter egg — Who is Roman?
+    if (/who\s+is\s+roman/i.test(text.trim())) {
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({
+        channel,
+        thread_ts: threadTs,
+        text: "That's Roman — COO of Ralabs and a genuinely great guy! He's deeply in love with JavaScript, Python, DevOps, and R&D. If it's cutting-edge and slightly nerdy, Roman's probably already tried it. 🚀",
+        unfurl_links: false,
+      });
+    }
+
     const result = await ragQuery(text, history);
 
     analytics.track(user, 'Message Received', { question: text, thread_length: history.length });
