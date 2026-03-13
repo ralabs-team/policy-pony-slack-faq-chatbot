@@ -98,7 +98,7 @@ async function handleEmployeeDm({ message, client }) {
     }
 
     // Easter egg — Who is Roman?
-    if (/who\s+is\s+roman/i.test(text.trim())) {
+    if (/who\s+is\s+roman(\s+r(odomansky[yi]?)?)?\s*\??$/i.test(text.trim())) {
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
