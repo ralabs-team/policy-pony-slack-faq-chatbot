@@ -100,6 +100,21 @@ async function handleEmployeeDm({ message, client }) {
       });
     }
 
+    // Self-introduction — who/what are you?
+    const SELF_INTRO = /\b(who|what) are you\b|\btell me about yourself\b|\bwhat('s| is) your (name|purpose|role)\b|\bintroduce yourself\b|(хто|що) ти (таке|такий)?\b|розкажи про себе/i;
+    if (SELF_INTRO.test(text.trim())) {
+      analytics.track(user, 'Self Intro');
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({
+        channel,
+        thread_ts: threadTs,
+        text: "I'm *Policy Pony* 🦄 — your friendly HR assistant at Ralabs! I can answer questions about company policies, benefits, time off, public holidays, and more. Just ask me anything HR-related and I'll do my best to help. What would you like to know?",
+        unfurl_links: false,
+      });
+    }
+
     // Capability questions — list topics from currently uploaded documents
     if (CAPABILITY_QUESTIONS.test(text.trim())) {
       analytics.track(user, 'Capability Question');
