@@ -144,9 +144,18 @@ const NOT_FOUND_MESSAGE = "Hmm, I couldn't find anything on that. Is there anyth
  * Generate a capability overview based on currently uploaded document names.
  * Responds in the same language as the question (EN or UA).
  */
-async function generateCapabilityResponse(docNames, isUkrainian) {
+/**
+ * @param {Object} chunksPerDoc - { docName: [chunk1, chunk2, ...] }
+ * @param {boolean} isUkrainian
+ */
+async function generateCapabilityResponse(chunksPerDoc, isUkrainian) {
   const language = isUkrainian ? 'Ukrainian' : 'English';
   const closing = isUkrainian ? 'З чим іще я можу допомогти?' : 'Is there anything else I can help you with?';
+
+  const context = Object.entries(chunksPerDoc)
+    .map(([name, chunks]) => `[${name}]\n${chunks.join('\n')}`)
+    .join('\n\n---\n\n');
+
   try {
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -155,7 +164,8 @@ async function generateCapabilityResponse(docNames, isUkrainian) {
         {
           role: 'system',
           content: `You are Policy Pony, a friendly and informal HR assistant bot for Ralabs.
-Based on the list of policy document names provided, describe what topics you can help with and give 2-3 short example questions per document.
+Based ONLY on the actual document content provided below, list what topics you can help with and give 2-3 example questions per document that you can genuinely answer.
+Only include questions that are clearly covered by the document content — do not invent topics or questions that aren't there.
 Use Slack markdown: *bold* for document/topic names, bullet points ( • ) for example questions.
 Be warm and conversational — not corporate.
 Respond in ${language}.
@@ -163,12 +173,13 @@ End your response with exactly: "${closing}"`,
         },
         {
           role: 'user',
-          content: `Available policy documents: ${docNames.join(', ')}`,
+          content: context,
         },
       ],
     });
     return response.choices[0].message.content.trim();
   } catch {
+    const docNames = Object.keys(chunksPerDoc);
     return isUkrainian
       ? `Я можу допомогти з питаннями про: ${docNames.join(', ')}. ${closing}`
       : `I can help with questions about: ${docNames.join(', ')}. ${closing}`;

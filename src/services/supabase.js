@@ -75,6 +75,20 @@ async function searchSimilarChunks(embedding, matchCount = 5, matchThreshold = 0
   return data || [];
 }
 
+async function sampleChunksPerDocument(docNames, chunksPerDoc = 3) {
+  const results = {};
+  for (const docName of docNames) {
+    const { data, error } = await supabase
+      .from('document_chunks')
+      .select('chunk_text')
+      .eq('doc_name', docName)
+      .order('chunk_index', { ascending: true })
+      .limit(chunksPerDoc);
+    if (!error && data) results[docName] = data.map((r) => r.chunk_text);
+  }
+  return results;
+}
+
 // ── Logging ────────────────────────────────────────────────────────────────
 
 async function logUnansweredQuestion({ userId, questionText, threadTs, channel }) {
@@ -107,6 +121,7 @@ module.exports = {
   insertChunks,
   deleteChunksByDocName,
   searchSimilarChunks,
+  sampleChunksPerDocument,
   logUnansweredQuestion,
   logAudit,
 };

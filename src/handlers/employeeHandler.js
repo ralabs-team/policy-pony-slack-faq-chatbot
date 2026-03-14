@@ -1,6 +1,6 @@
 const { query: ragQuery } = require('../services/rag');
 const { NOT_FOUND_MESSAGE, generateCapabilityResponse } = require('../services/llm');
-const { logUnansweredQuestion, logAudit, listAllDocuments } = require('../services/supabase');
+const { logUnansweredQuestion, logAudit, listAllDocuments, sampleChunksPerDocument } = require('../services/supabase');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
@@ -105,9 +105,13 @@ async function handleEmployeeDm({ message, client }) {
       analytics.track(user, 'Capability Question');
       const docs = await listAllDocuments();
       const isUA = /[а-яіїєґА-ЯІЇЄҐ]/.test(text);
-      const reply = docs.length > 0
-        ? await generateCapabilityResponse(docs.map((d) => d.doc_name), isUA)
-        : (isUA ? 'Поки що жодного документа не завантажено. Зверніться до HR.' : "No policy documents have been uploaded yet. Check back soon!");
+      let reply;
+      if (docs.length > 0) {
+        const chunksPerDoc = await sampleChunksPerDocument(docs.map((d) => d.doc_name), 3);
+        reply = await generateCapabilityResponse(chunksPerDoc, isUA);
+      } else {
+        reply = isUA ? 'Поки що жодного документа не завантажено. Зверніться до HR.' : "No policy documents have been uploaded yet. Check back soon!";
+      }
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
