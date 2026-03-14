@@ -1,8 +1,11 @@
 const { query: ragQuery } = require('../services/rag');
-const { NOT_FOUND_MESSAGE } = require('../services/llm');
-const { logUnansweredQuestion, logAudit } = require('../services/supabase');
+const { NOT_FOUND_MESSAGE, generateCapabilityResponse } = require('../services/llm');
+const { logUnansweredQuestion, logAudit, listAllDocuments } = require('../services/supabase');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
+
+// Matches "how can you help", "what can I ask", "what do you know", etc. in EN and UA
+const CAPABILITY_QUESTIONS = /\b(how (can|do) you help|what (can|do) you (do|know|help with|cover)|what (topics?|questions?|things?) (can|do)|what (can|should) i ask|what('s| is) your (purpose|role)|what are you (for|about))\b|(що ти (вмієш|можеш)|чим ти (можеш )?допомож|які (теми|питання)|що ти знаєш)/i;
 
 const GREETINGS_EN = /^(hi|hey|hello|howdy|hiya|sup|yo|greetings|good morning|good afternoon|good evening)[\s!.,]*$/i;
 const GREETINGS_UA = /^(привіт|добрий день|добридень|доброго ранку|вітаю)[\s!.,]*$/i;
@@ -95,6 +98,20 @@ async function handleEmployeeDm({ message, client }) {
         text: "What would you like to know more about?",
         unfurl_links: false,
       });
+    }
+
+    // Capability questions — list topics from currently uploaded documents
+    if (CAPABILITY_QUESTIONS.test(text.trim())) {
+      analytics.track(user, 'Capability Question');
+      const docs = await listAllDocuments();
+      const isUA = /[а-яіїєґА-ЯІЇЄҐ]/.test(text);
+      const reply = docs.length > 0
+        ? await generateCapabilityResponse(docs.map((d) => d.doc_name), isUA)
+        : (isUA ? 'Поки що жодного документа не завантажено. Зверніться до HR.' : "No policy documents have been uploaded yet. Check back soon!");
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({ channel, thread_ts: threadTs, text: reply, unfurl_links: false });
     }
 
     // Easter egg — Who is Roman?
