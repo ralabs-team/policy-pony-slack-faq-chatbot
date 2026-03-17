@@ -80,4 +80,4 @@ function track(userId, event, properties = {}) {
   });
 }
 
-module.exports = { ensureInit, identify, track };
+module.exports = { ensureInit, getUser, identify, track };
