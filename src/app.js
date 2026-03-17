@@ -2,6 +2,7 @@ const { App, ExpressReceiver, LogLevel } = require('@slack/bolt');
 const express = require('express');
 const { handleDmMessage } = require('./handlers/dmMessage');
 const { handleBlockAction, handleDeleteDocRequest } = require('./handlers/hrAdminHandler');
+const { handleUserRequestYes, handleUserRequestNo } = require('./handlers/requestHandler');
 const { handleHelp } = require('./handlers/helpHandler');
 const analytics = require('./services/analytics');
 const log = require('./utils/logger');
@@ -53,6 +54,10 @@ app.action(/^(confirm|cancel)_action_.+/, handleBlockAction);
 
 // Handle delete button clicks from the document list (HR only)
 app.action('delete_doc_request', handleDeleteDocRequest);
+
+// Handle user policy request buttons (yes/no after not-found)
+app.action('user_request_yes', handleUserRequestYes);
+app.action('user_request_no', handleUserRequestNo);
 
 // /help slash command
 app.command('/help', handleHelp);

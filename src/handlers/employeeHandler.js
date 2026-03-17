@@ -188,7 +188,6 @@ async function handleEmployeeDm({ message, client }) {
         log.warn('QUERY', `No answer found for ${log.who(user)}: "${preview}" — logged as unanswered`);
         analytics.track(user, 'Answer Not Found', { question: text });
         await logUnansweredQuestion({ userId: user, questionText: text, threadTs, channel });
-        await client.chat.postMessage({ channel, thread_ts: threadTs, text: NOT_FOUND_MESSAGE });
         await logAudit({
           userId: user,
           userType: 'employee',
@@ -196,6 +195,37 @@ async function handleEmployeeDm({ message, client }) {
           question: text,
           answer: null,
           citedDoc: null,
+        });
+        // Ask if the user wants HR to review and add this to policies
+        await client.chat.postMessage({
+          channel,
+          thread_ts: threadTs,
+          text: "Hmm, I couldn't find anything on that. Would you like HR to review this and add it to our policies?",
+          blocks: [
+            {
+              type: 'section',
+              text: { type: 'mrkdwn', text: "Hmm, I couldn't find anything on that. Would you like HR to review this and add it to our policies?" },
+            },
+            {
+              type: 'actions',
+              elements: [
+                {
+                  type: 'button',
+                  text: { type: 'plain_text', text: '👍 Yes, request it' },
+                  style: 'primary',
+                  action_id: 'user_request_yes',
+                  value: text,
+                },
+                {
+                  type: 'button',
+                  text: { type: 'plain_text', text: 'No thanks' },
+                  action_id: 'user_request_no',
+                  value: text,
+                },
+              ],
+            },
+          ],
+          unfurl_links: false,
         });
       }
     }

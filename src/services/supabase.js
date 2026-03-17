@@ -91,6 +91,17 @@ async function sampleChunksPerDocument(docNames, chunksPerDoc = 3) {
 
 // ── Logging ────────────────────────────────────────────────────────────────
 
+async function logUserRequest({ userId, userName, questionText, channel, threadTs }) {
+  const { error } = await supabase.from('user_requests').insert({
+    user_id: userId,
+    user_name: userName,
+    question_text: questionText,
+    channel,
+    thread_ts: threadTs,
+  });
+  if (error) console.error('Failed to log user request:', error.message);
+}
+
 async function logUnansweredQuestion({ userId, questionText, threadTs, channel }) {
   const { error } = await supabase.from('unanswered_questions').insert({
     user_id: userId,
@@ -122,6 +133,7 @@ module.exports = {
   deleteChunksByDocName,
   searchSimilarChunks,
   sampleChunksPerDocument,
+  logUserRequest,
   logUnansweredQuestion,
   logAudit,
 };

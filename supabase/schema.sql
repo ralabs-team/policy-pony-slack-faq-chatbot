@@ -56,7 +56,18 @@ CREATE TABLE IF NOT EXISTS audit_log (
   timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Disable RLS on all bot tables (server-side bot uses service role — RLS not needed)
+-- 7. User-requested policy topics (explicitly requested by employees after a not-found answer)
+CREATE TABLE IF NOT EXISTS user_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  user_name TEXT NOT NULL,
+  question_text TEXT NOT NULL,
+  channel TEXT,
+  thread_ts TEXT,
+  requested_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. Disable RLS on all bot tables (server-side bot uses service role — RLS not needed)
 ALTER TABLE policy_documents DISABLE ROW LEVEL SECURITY;
 ALTER TABLE document_chunks DISABLE ROW LEVEL SECURITY;
 ALTER TABLE unanswered_questions DISABLE ROW LEVEL SECURITY;
