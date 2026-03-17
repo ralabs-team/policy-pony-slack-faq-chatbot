@@ -163,6 +163,39 @@ async function handleEmployeeDm({ message, client }) {
 
       if (result.isSensitive) {
         analytics.track(user, 'Sensitive Topic', { question: text });
+      } else if (result.isPartialNotFound) {
+        analytics.track(user, 'Answer Not Found', { question: text });
+        await logUnansweredQuestion({ userId: user, questionText: text, threadTs, channel });
+        await client.chat.postMessage({
+          channel,
+          thread_ts: threadTs,
+          text: 'Would you like HR to review this and add it to our policies?',
+          blocks: [
+            {
+              type: 'section',
+              text: { type: 'mrkdwn', text: 'Would you like HR to review this and add it to our policies?' },
+            },
+            {
+              type: 'actions',
+              elements: [
+                {
+                  type: 'button',
+                  text: { type: 'plain_text', text: '👍 Yes, request it' },
+                  style: 'primary',
+                  action_id: 'user_request_yes',
+                  value: text,
+                },
+                {
+                  type: 'button',
+                  text: { type: 'plain_text', text: 'No thanks' },
+                  action_id: 'user_request_no',
+                  value: text,
+                },
+              ],
+            },
+          ],
+          unfurl_links: false,
+        });
       } else {
         analytics.track(user, 'Answer Found', { question: text, cited_doc: result.citedDoc || null });
       }

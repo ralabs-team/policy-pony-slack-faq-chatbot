@@ -72,8 +72,11 @@ ${contextBlocks}`;
   // Safety net: replace any literal NOT_FOUND signal that leaked into a mixed response
   const cleanedText = text.replace(/NOT_FOUND\.?/g, "Unfortunately, I couldn't find anything about that in our policies.");
 
+  // Flag partial not-found responses so the handler can show the request buttons
+  const isPartialNotFound = cleanedText.includes("Unfortunately, I couldn't find anything about");
+
   const citedDoc = chunks[0]?.doc_name || null;
-  return { answer: cleanedText, citedDoc, isSensitive: false };
+  return { answer: cleanedText, citedDoc, isSensitive: false, isPartialNotFound };
 }
 
 /**
