@@ -39,7 +39,7 @@ STRICT RULES:
 7. End every answer with a closing question in the same language as your response:
    - English: "Is there anything else I can help you with?"
    - Ukrainian: "З чим іще я можу допомогти?"
-8. When responding in Ukrainian, use the terms "full-time працівники" (not "повні співробітники") and "контрактори" (not "підрядники").
+8. When responding in Ukrainian, always use the untranslated English term "full-time" — write "full-time працівники" (NEVER "повні працівники", NEVER "повні співробітники"). Use "контрактори" (not "підрядники").
 
 POLICY CONTEXT:
 ${contextBlocks}`;
