@@ -134,7 +134,7 @@ async function handleEmployeeDm({ message, client }) {
     }
 
     // Easter egg — Who is Roman?
-    if (/who\s+is\s+roman(\s+r(odomansky[yi]?)?)?\s*\??$/i.test(text.trim())) {
+    if (/who\s+is\s+roman(\s+r(odomansky[yi]?)?)?\s*\??$/i.test(text.trim()) || /хто\s+(такий\s+)?роман(\s+р(одоманськ[ийй]?)?)?\s*\??$/i.test(text.trim())) {
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
@@ -147,7 +147,7 @@ async function handleEmployeeDm({ message, client }) {
     }
 
     // Easter egg — meaning of life
-    if (/what('s| is) the meaning of life\??$/i.test(text.trim())) {
+    if (/what('s| is) the meaning of life\??$/i.test(text.trim()) || /(в чому|який|у чому)\s+сенс\s+життя\??$/i.test(text.trim())) {
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
@@ -160,7 +160,7 @@ async function handleEmployeeDm({ message, client }) {
     }
 
     // Easter egg — better than ChatGPT?
-    if (/are you better than chat\s*gpt\??$/i.test(text.trim())) {
+    if (/are you better than chat\s*gpt\??$/i.test(text.trim()) || /ти (кращ[аеий]+|краще)\s+(за|ніж)\s+chat\s*gpt\??$/i.test(text.trim())) {
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
@@ -173,7 +173,7 @@ async function handleEmployeeDm({ message, client }) {
     }
 
     // Easter egg — tell me a joke
-    if (/tell me a joke\??$/i.test(text.trim())) {
+    if (/tell me a joke\??$/i.test(text.trim()) || /(розкажи|розкажіть)\s+(жарт|анекдот)\??$/i.test(text.trim())) {
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
@@ -186,7 +186,7 @@ async function handleEmployeeDm({ message, client }) {
     }
 
     // Easter egg — do you like your job?
-    if (/do you like your (job|work)\??$/i.test(text.trim())) {
+    if (/do you like your (job|work)\??$/i.test(text.trim()) || /(тобі подобається|ти любиш)\s+(свою\s+)?(роботу|робота)\??$/i.test(text.trim())) {
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
@@ -199,7 +199,7 @@ async function handleEmployeeDm({ message, client }) {
     }
 
     // Easter egg — salary questions
-    if (/\b(salary|salaries|how much (does|do)|what (does|do) .+ (earn|make|get paid))\b/i.test(text.trim())) {
+    if (/\b(salary|salaries|how much (does|do)|what (does|do) .+ (earn|make|get paid))\b/i.test(text.trim()) || /\b(зарплат|скільки (заробляє|отримує|платять))\b/i.test(text.trim())) {
       await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
       await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
