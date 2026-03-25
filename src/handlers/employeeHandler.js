@@ -146,6 +146,71 @@ async function handleEmployeeDm({ message, client }) {
       });
     }
 
+    // Easter egg — meaning of life
+    if (/what('s| is) the meaning of life\??$/i.test(text.trim())) {
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({
+        channel,
+        thread_ts: threadTs,
+        text: '42. But also: unlimited PTO would help.',
+        unfurl_links: false,
+      });
+    }
+
+    // Easter egg — better than ChatGPT?
+    if (/are you better than chat\s*gpt\??$/i.test(text.trim())) {
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({
+        channel,
+        thread_ts: threadTs,
+        text: "I'm more focused. ChatGPT knows everything. I know Ralabs.",
+        unfurl_links: false,
+      });
+    }
+
+    // Easter egg — tell me a joke
+    if (/tell me a joke\??$/i.test(text.trim())) {
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({
+        channel,
+        thread_ts: threadTs,
+        text: "Why did the employee read the HR policy twice? Because the first time, they fell asleep. 😄",
+        unfurl_links: false,
+      });
+    }
+
+    // Easter egg — do you like your job?
+    if (/do you like your (job|work)\??$/i.test(text.trim())) {
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({
+        channel,
+        thread_ts: threadTs,
+        text: "Love it. People ask me about vacation days at 11pm on a Sunday and I'm just here, ready, no complaints. 🦄",
+        unfurl_links: false,
+      });
+    }
+
+    // Easter egg — salary questions
+    if (/\b(salary|salaries|how much (does|do)|what (does|do) .+ (earn|make|get paid))\b/i.test(text.trim())) {
+      await client.reactions.remove({ name: 'hourglass_flowing_sand', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'white_check_mark', channel, timestamp: ts }).catch(() => {});
+      await client.reactions.add({ name: 'unicorn', channel, timestamp: ts }).catch(() => {});
+      return client.chat.postMessage({
+        channel,
+        thread_ts: threadTs,
+        text: "I actually know everyone's salary. But Iryna Oliiarnyk made it very clear what would happen if I ever shared it. So. How about those public holidays?",
+        unfurl_links: false,
+      });
+    }
+
     const result = await ragQuery(text, history);
 
     analytics.track(user, 'Message Received', { question: text, thread_length: history.length });
