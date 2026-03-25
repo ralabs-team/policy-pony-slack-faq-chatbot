@@ -21,7 +21,10 @@ Think of me as your go-to for HR-related questions — from benefits and insuran
 • What's the difference between vacation and sick leave?
 • What do I need to know about joining the team?
 
-Just send me a message and I'll get you a quick answer.`;
+Just send me a message and I'll get you a quick answer.
+
+*Commands:*
+• */feedback [your message]* — share feedback or suggest a topic you'd like me to cover`;
 
 const HR_HELP = `*Hey! I'm Pony, your HR buddy* 👋
 
@@ -32,7 +35,10 @@ const HR_HELP = `*Hey! I'm Pony, your HR buddy* 👋
 • *delete* — shows all uploaded docs with delete buttons
 • *delete [doc name]* — goes straight to delete confirmation (e.g. "delete Benefits Policy")
 • *list documents* — shows all uploaded docs (no delete buttons)
-• *update [doc name]* — attach a new file to replace an existing policy`;
+• *update [doc name]* — attach a new file to replace an existing policy
+
+*Commands:*
+• */feedback [your message]* — share feedback or suggest a topic to add to our policies`;
 
 async function handleHelp({ ack, body, client }) {
   await ack();

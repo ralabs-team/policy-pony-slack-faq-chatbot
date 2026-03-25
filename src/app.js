@@ -2,7 +2,7 @@ const { App, ExpressReceiver, LogLevel } = require('@slack/bolt');
 const express = require('express');
 const { handleDmMessage } = require('./handlers/dmMessage');
 const { handleBlockAction, handleDeleteDocRequest } = require('./handlers/hrAdminHandler');
-const { handleUserRequestYes, handleUserRequestNo } = require('./handlers/requestHandler');
+const { handleUserRequestYes, handleUserRequestNo, handleFeedback } = require('./handlers/requestHandler');
 const { handleHelp } = require('./handlers/helpHandler');
 const analytics = require('./services/analytics');
 const log = require('./utils/logger');
@@ -61,5 +61,8 @@ app.action('user_request_no', handleUserRequestNo);
 
 // /help slash command
 app.command('/help', handleHelp);
+
+// /feedback slash command
+app.command('/feedback', handleFeedback);
 
 module.exports = { app, receiver };
