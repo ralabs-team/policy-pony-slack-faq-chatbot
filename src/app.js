@@ -63,6 +63,6 @@ app.action('user_request_no', handleUserRequestNo);
 app.command('/help', handleHelp);
 
 // /feedback slash command
-app.command('/feedback', handleFeedback);
+app.command('/pony-feedback', handleFeedback);
 
 module.exports = { app, receiver };

@@ -24,7 +24,7 @@ Think of me as your go-to for HR-related questions — from benefits and insuran
 Just send me a message and I'll get you a quick answer.
 
 *Commands:*
-• */feedback [your message]* — share feedback or suggest a topic you'd like me to cover`;
+• */pony-feedback [your message]* — share feedback or suggest a topic you'd like me to cover`;
 
 const HR_HELP = `*Hey! I'm Pony, your HR buddy* 👋
 
@@ -38,7 +38,7 @@ const HR_HELP = `*Hey! I'm Pony, your HR buddy* 👋
 • *update [doc name]* — attach a new file to replace an existing policy
 
 *Commands:*
-• */feedback [your message]* — share feedback or suggest a topic to add to our policies`;
+• */pony-feedback [your message]* — share feedback or suggest a topic to add to our policies`;
 
 async function handleHelp({ ack, body, client }) {
   await ack();
