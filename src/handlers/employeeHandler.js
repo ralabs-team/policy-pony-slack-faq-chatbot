@@ -230,7 +230,7 @@ async function handleEmployeeDm({ message, client }) {
         analytics.track(user, 'Sensitive Topic', { question: text });
       } else if (result.isPartialNotFound) {
         analytics.track(user, 'Answer Not Found', { question: text });
-        await logUnansweredQuestion({ userId: user, questionText: text, threadTs, channel });
+        await logUnansweredQuestion({ userId: user, userName: analytics.getUser(user).name, questionText: text, threadTs, channel });
         await client.chat.postMessage({
           channel,
           thread_ts: threadTs,
@@ -285,7 +285,7 @@ async function handleEmployeeDm({ message, client }) {
       } else {
         log.warn('QUERY', `No answer found for ${log.who(user)}: "${preview}" — logged as unanswered`);
         analytics.track(user, 'Answer Not Found', { question: text });
-        await logUnansweredQuestion({ userId: user, questionText: text, threadTs, channel });
+        await logUnansweredQuestion({ userId: user, userName: analytics.getUser(user).name, questionText: text, threadTs, channel });
         await logAudit({
           userId: user,
           userType: 'employee',

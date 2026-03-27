@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 CREATE TABLE IF NOT EXISTS unanswered_questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT NOT NULL,
+  user_name TEXT,
   question_text TEXT NOT NULL,
   thread_ts TEXT,
   channel TEXT,
@@ -67,11 +68,14 @@ CREATE TABLE IF NOT EXISTS user_requests (
   requested_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. Disable RLS on all bot tables (server-side bot uses service role — RLS not needed)
-ALTER TABLE policy_documents DISABLE ROW LEVEL SECURITY;
-ALTER TABLE document_chunks DISABLE ROW LEVEL SECURITY;
-ALTER TABLE unanswered_questions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_log DISABLE ROW LEVEL SECURITY;
+-- 8. Enable RLS on all tables.
+-- The bot uses SUPABASE_SERVICE_ROLE_KEY which bypasses RLS, so the bot is unaffected.
+-- RLS with no policies = anon/public key gets access to nothing (deny by default).
+ALTER TABLE policy_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE document_chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE unanswered_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_requests ENABLE ROW LEVEL SECURITY;
 
 -- 8. Similarity search function used by the RAG pipeline
 CREATE OR REPLACE FUNCTION match_documents(

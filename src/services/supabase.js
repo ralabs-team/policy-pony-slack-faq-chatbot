@@ -102,9 +102,10 @@ async function logUserRequest({ userId, userName, questionText, channel, threadT
   if (error) console.error('Failed to log user request:', error.message);
 }
 
-async function logUnansweredQuestion({ userId, questionText, threadTs, channel }) {
+async function logUnansweredQuestion({ userId, userName, questionText, threadTs, channel }) {
   const { error } = await supabase.from('unanswered_questions').insert({
     user_id: userId,
+    user_name: userName,
     question_text: questionText,
     thread_ts: threadTs,
     channel,
