@@ -72,7 +72,10 @@ ${contextBlocks}`;
   }
 
   // Safety net: replace any literal NOT_FOUND signal that leaked into a mixed response
-  const cleanedText = text.replace(/NOT_FOUND\.?/g, "Unfortunately, I couldn't find anything about that in our policies.");
+  const cleanedText = text
+    .replace(/NOT_FOUND\.?/g, "Unfortunately, I couldn't find anything about that in our policies.")
+    // Safety net: convert **double asterisk bold** to *single asterisk bold* for Slack
+    .replace(/\*\*(.+?)\*\*/g, '*$1*');
 
   // Flag partial not-found responses so the handler can show the request buttons
   const isPartialNotFound = cleanedText.includes("Unfortunately, I couldn't find anything about");
