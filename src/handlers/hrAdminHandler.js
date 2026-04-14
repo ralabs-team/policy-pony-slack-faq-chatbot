@@ -7,7 +7,7 @@ const { handleNotifyRequest } = require('./notifyHandler');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
-const NOTIFY_PATTERN = /^notify everyone(?:\s+in\s+<#([A-Z0-9]+)(?:\|[^>]+)?>)?:\s*(.+)/is;
+const NOTIFY_PATTERN = /^notify everyone(?:\s+in\s+<#([^|>]+)(?:\|[^>]+)?>)?:\s*(.+)/is;
 
 const HR_USER_IDS = (process.env.HR_USER_IDS || '')
   .split(',')
