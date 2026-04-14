@@ -41,17 +41,16 @@ setInterval(() => {
 }, 60 * 1000);
 
 async function handleNotifyRequest(client, channel, ts, messageText, userId, channelOverride = null) {
-  // Cooldown check
+  // Cooldown warning (informational only — does not block)
   const lastBroadcast = await getLastBroadcastTime();
   if (lastBroadcast) {
     const elapsed = Date.now() - new Date(lastBroadcast).getTime();
     if (elapsed < COOLDOWN_MS) {
       const sentAt = new Date(lastBroadcast).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      const minutesLeft = Math.ceil((COOLDOWN_MS - elapsed) / 60000);
-      return client.chat.postMessage({
+      await client.chat.postMessage({
         channel,
         thread_ts: ts,
-        text: `⛔ A broadcast was sent less than an hour ago (at ${sentAt}). Please wait ${minutesLeft} more minute(s) before sending another.`,
+        text: `⚠️ Heads up — a broadcast was already sent today at ${sentAt}. You can still proceed.`,
         unfurl_links: false,
       });
     }
