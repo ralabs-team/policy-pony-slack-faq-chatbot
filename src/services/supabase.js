@@ -126,6 +126,18 @@ async function logAudit({ userId, userType, action, docName, question, answer, c
   if (error) console.error('Failed to log audit:', error.message);
 }
 
+async function getLastBroadcastTime() {
+  const { data, error } = await supabase
+    .from('audit_log')
+    .select('timestamp')
+    .eq('action', 'broadcast')
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
+  if (error || !data) return null;
+  return data.timestamp;
+}
+
 module.exports = {
   upsertDocument,
   deleteDocumentByName,
@@ -137,4 +149,5 @@ module.exports = {
   logUserRequest,
   logUnansweredQuestion,
   logAudit,
+  getLastBroadcastTime,
 };

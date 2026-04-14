@@ -36,6 +36,7 @@ const HR_HELP = `*Hey! I'm Pony, your HR buddy* 👋
 • *delete [doc name]* — goes straight to delete confirmation (e.g. "delete Benefits Policy")
 • *list documents* — shows all uploaded docs (no delete buttons)
 • *update [doc name]* — attach a new file to replace an existing policy
+• *notify everyone: [message]* — send a DM to all workspace members (1 hour cooldown)
 
 *Commands:*
 • */pony-feedback [your message]* — share feedback or suggest a topic to add to our policies`;

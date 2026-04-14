@@ -3,8 +3,11 @@ const { ingestDocument, deleteDocument, listDocuments } = require('../services/i
 const { detectHrIntent } = require('../services/llm');
 const { downloadSlackFile } = require('../utils/slack');
 const { handleEmployeeDm } = require('./employeeHandler');
+const { handleNotifyRequest } = require('./notifyHandler');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
+
+const NOTIFY_PATTERN = /^notify everyone:\s*(.+)/is;
 
 const HR_USER_IDS = (process.env.HR_USER_IDS || '')
   .split(',')
@@ -30,6 +33,14 @@ async function handleHrAdminDm({ message, client }) {
   const { channel, ts, text, files, user } = message;
   const hasFile = Array.isArray(files) && files.length > 0;
   const messageText = text || '';
+
+  // Broadcast to all users
+  const notifyMatch = NOTIFY_PATTERN.exec(messageText);
+  if (notifyMatch) {
+    const broadcastText = notifyMatch[1].trim();
+    log.info('HR', `📢 ${log.who(user)} triggered broadcast`);
+    return handleNotifyRequest(client, channel, ts, broadcastText, user);
+  }
 
   const intent = await detectHrIntent(messageText, hasFile);
   log.info('HR', `👤 ${log.who(user)} → intent: ${intent.action}${intent.docName ? ` | doc: "${intent.docName}"` : ''}${hasFile ? ` | file: ${files[0].name} (${(files[0].size / 1024).toFixed(0)} KB)` : ''}`);

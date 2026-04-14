@@ -4,6 +4,7 @@ const { handleDmMessage } = require('./handlers/dmMessage');
 const { handleBlockAction, handleDeleteDocRequest } = require('./handlers/hrAdminHandler');
 const { handleUserRequestYes, handleUserRequestNo, handleFeedback } = require('./handlers/requestHandler');
 const { handleHelp } = require('./handlers/helpHandler');
+const { handleNotifyAction } = require('./handlers/notifyHandler');
 const analytics = require('./services/analytics');
 const log = require('./utils/logger');
 
@@ -62,7 +63,10 @@ app.action('user_request_no', handleUserRequestNo);
 // /help slash command
 app.command('/help', handleHelp);
 
-// /feedback slash command
+// /pony-feedback slash command
 app.command('/pony-feedback', handleFeedback);
+
+// notify everyone broadcast actions
+app.action(/^(confirm|cancel)_notify_.+/, handleNotifyAction);
 
 module.exports = { app, receiver };
