@@ -33,7 +33,7 @@ async function handleNotifyRequest(client, channel, ts, messageText, userId) {
 
   // Fetch member count for preview
   const result = await client.users.list({ limit: 1000 });
-  const members = (result.members || []).filter((u) => !u.is_bot && !u.deleted && u.id !== 'USLACKBOT');
+  const members = (result.members || []).filter((u) => !u.is_bot && !u.deleted && !u.is_restricted && !u.is_ultra_restricted && u.id !== 'USLACKBOT');
   const count = members.length;
 
   const actionId = randomUUID();
@@ -101,7 +101,7 @@ async function handleNotifyAction({ ack, body, client, action }) {
   await client.chat.update({ channel, ts: messageTs, blocks: [], text: '⏳ Sending messages...' });
 
   const result = await client.users.list({ limit: 1000 });
-  const members = (result.members || []).filter((u) => !u.is_bot && !u.deleted && u.id !== 'USLACKBOT');
+  const members = (result.members || []).filter((u) => !u.is_bot && !u.deleted && !u.is_restricted && !u.is_ultra_restricted && u.id !== 'USLACKBOT');
 
   log.info('NOTIFY', `📢 Broadcast started by ${log.who(userId)} — ${members.length} recipients`);
 
