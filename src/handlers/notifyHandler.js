@@ -4,6 +4,32 @@ const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+const GENERAL_CHANNEL_ID = process.env.GENERAL_CHANNEL_ID;
+
+async function getGeneralChannelMembers(client) {
+  if (!GENERAL_CHANNEL_ID) throw new Error('GENERAL_CHANNEL_ID env variable is not set.');
+
+  const memberIds = [];
+  let cursor;
+  do {
+    const result = await client.conversations.members({
+      channel: GENERAL_CHANNEL_ID,
+      limit: 200,
+      ...(cursor ? { cursor } : {}),
+    });
+    memberIds.push(...(result.members || []));
+    cursor = result.response_metadata?.next_cursor;
+  } while (cursor);
+
+  // Fetch full user objects to filter bots/guests
+  const usersResult = await client.users.list({ limit: 1000 });
+  const userMap = {};
+  for (const u of usersResult.members || []) userMap[u.id] = u;
+
+  return memberIds
+    .map((id) => userMap[id])
+    .filter((u) => u && !u.is_bot && !u.deleted && !u.is_restricted && !u.is_ultra_restricted && u.id !== 'USLACKBOT');
+}
 
 // In-memory store for pending notifications, auto-expire after 10 min
 const pendingNotifications = new Map();
@@ -32,8 +58,7 @@ async function handleNotifyRequest(client, channel, ts, messageText, userId) {
   }
 
   // Fetch member count for preview
-  const result = await client.users.list({ limit: 1000 });
-  const members = (result.members || []).filter((u) => !u.is_bot && !u.deleted && !u.is_restricted && !u.is_ultra_restricted && u.id !== 'USLACKBOT');
+  const members = await getGeneralChannelMembers(client);
   const count = members.length;
 
   const actionId = randomUUID();
@@ -100,8 +125,7 @@ async function handleNotifyAction({ ack, body, client, action }) {
 
   await client.chat.update({ channel, ts: messageTs, blocks: [], text: '⏳ Sending messages...' });
 
-  const result = await client.users.list({ limit: 1000 });
-  const members = (result.members || []).filter((u) => !u.is_bot && !u.deleted && !u.is_restricted && !u.is_ultra_restricted && u.id !== 'USLACKBOT');
+  const members = await getGeneralChannelMembers(client);
 
   log.info('NOTIFY', `📢 Broadcast started by ${log.who(userId)} — ${members.length} recipients`);
 
