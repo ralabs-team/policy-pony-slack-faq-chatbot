@@ -40,7 +40,16 @@ async function handleHrAdminDm({ message, client }) {
     const channelOverride = notifyMatch[1] || null;
     const broadcastText = notifyMatch[2].trim();
     log.info('HR', `📢 ${log.who(user)} triggered broadcast${channelOverride ? ` (channel: ${channelOverride})` : ''}`);
-    return handleNotifyRequest(client, channel, ts, broadcastText, user, channelOverride);
+    try {
+      return await handleNotifyRequest(client, channel, ts, broadcastText, user, channelOverride);
+    } catch (err) {
+      log.error('HR', `Broadcast failed`, err);
+      return client.chat.postMessage({
+        channel,
+        thread_ts: ts,
+        text: `❌ Broadcast failed: ${err.message}`,
+      });
+    }
   }
 
   const intent = await detectHrIntent(messageText, hasFile);
