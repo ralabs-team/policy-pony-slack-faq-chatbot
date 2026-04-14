@@ -108,18 +108,25 @@ async function handleNotifyAction({ ack, body, client, action }) {
   let sent = 0;
   let failed = 0;
 
-  for (const member of members) {
-    try {
-      const dm = await client.conversations.open({ users: member.id });
-      await client.chat.postMessage({
-        channel: dm.channel.id,
-        text: pending.messageText,
-        unfurl_links: false,
-      });
-      sent++;
-    } catch (err) {
-      log.warn('NOTIFY', `Failed to DM ${member.id}: ${err.message}`);
-      failed++;
+  const BATCH_SIZE = 20;
+  for (let i = 0; i < members.length; i += BATCH_SIZE) {
+    const batch = members.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async (member) => {
+        const dm = await client.conversations.open({ users: member.id });
+        await client.chat.postMessage({
+          channel: dm.channel.id,
+          text: pending.messageText,
+          unfurl_links: false,
+        });
+      })
+    );
+    for (const result of results) {
+      if (result.status === 'fulfilled') sent++;
+      else {
+        failed++;
+        log.warn('NOTIFY', `Failed to DM a member: ${result.reason?.message}`);
+      }
     }
   }
 
