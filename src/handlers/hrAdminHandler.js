@@ -3,11 +3,12 @@ const { ingestDocument, deleteDocument, listDocuments } = require('../services/i
 const { detectHrIntent } = require('../services/llm');
 const { downloadSlackFile } = require('../utils/slack');
 const { handleEmployeeDm } = require('./employeeHandler');
-const { handleNotifyRequest } = require('./notifyHandler');
+const { handleNotifyRequest, handleNotifyUser } = require('./notifyHandler');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
 const NOTIFY_PATTERN = /^notify everyone(?:\s+in\s+<#([^|>]+)(?:\|[^>]+)?>)?:\s*(.+)/is;
+const NOTIFY_USER_PATTERN = /^notify\s+<@([A-Z0-9]+)(?:\|[^>]+)?>:\s*(.+)/is;
 
 const HR_USER_IDS = (process.env.HR_USER_IDS || '')
   .split(',')
@@ -35,6 +36,23 @@ async function handleHrAdminDm({ message, client }) {
   const messageText = text || '';
 
   // Broadcast to all users
+  const notifyUserMatch = NOTIFY_USER_PATTERN.exec(messageText);
+  if (notifyUserMatch) {
+    const targetUserId = notifyUserMatch[1];
+    const dmText = notifyUserMatch[2].trim();
+    log.info('HR', `📨 ${log.who(user)} triggered single DM to ${log.who(targetUserId)}`);
+    try {
+      return await handleNotifyUser(client, channel, ts, dmText, user, targetUserId);
+    } catch (err) {
+      log.error('HR', `Single DM failed`, err);
+      return client.chat.postMessage({
+        channel,
+        thread_ts: ts,
+        text: `❌ Failed to send DM: ${err.message}`,
+      });
+    }
+  }
+
   const notifyMatch = NOTIFY_PATTERN.exec(messageText);
   if (notifyMatch) {
     const channelOverride = notifyMatch[1] || null;

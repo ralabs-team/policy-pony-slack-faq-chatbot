@@ -123,6 +123,22 @@ async function handleNotifyAction({ ack, body, client, action }) {
     return;
   }
 
+  // Single-user DM
+  if (pending.targetUserId) {
+    try {
+      const dm = await client.conversations.open({ users: pending.targetUserId });
+      await client.chat.postMessage({ channel: dm.channel.id, text: pending.messageText, unfurl_links: false });
+      const { name: targetName } = analytics.getUser(pending.targetUserId);
+      log.info('NOTIFY', `📨 DM sent to ${log.who(pending.targetUserId)} by ${log.who(userId)}`);
+      analytics.track(userId, 'Single DM Sent', { target: pending.targetUserId, message: pending.messageText });
+    } catch (err) {
+      await client.chat.update({ channel, ts: messageTs, blocks: [], text: `❌ Failed to send DM: ${err.message}` });
+      return;
+    }
+    await client.chat.update({ channel, ts: messageTs, blocks: [], text: `✅ DM sent.` });
+    return;
+  }
+
   await client.chat.update({ channel, ts: messageTs, blocks: [], text: '⏳ Sending messages...' });
 
   const members = await getChannelMembers(client, pending.channelOverride || GENERAL_CHANNEL_ID);
@@ -169,4 +185,45 @@ async function handleNotifyAction({ ack, body, client, action }) {
   });
 }
 
-module.exports = { handleNotifyRequest, handleNotifyAction };
+async function handleNotifyUser(client, channel, ts, messageText, userId, targetUserId) {
+  const { name: targetName } = analytics.getUser(targetUserId);
+  const actionId = randomUUID();
+  pendingNotifications.set(actionId, { messageText, userId, targetUserId, createdAt: Date.now() });
+
+  await client.chat.postMessage({
+    channel,
+    thread_ts: ts,
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `You're about to send a DM to *${targetName}*:\n\n> ${messageText}\n\nShall I proceed?`,
+        },
+      },
+      {
+        type: 'actions',
+        elements: [
+          {
+            type: 'button',
+            text: { type: 'plain_text', text: '✅ Send' },
+            style: 'primary',
+            action_id: `confirm_notify_${actionId}`,
+            value: actionId,
+          },
+          {
+            type: 'button',
+            text: { type: 'plain_text', text: '❌ Cancel' },
+            style: 'danger',
+            action_id: `cancel_notify_${actionId}`,
+            value: actionId,
+          },
+        ],
+      },
+    ],
+    text: `About to DM ${targetName}: "${messageText}"`,
+    unfurl_links: false,
+  });
+}
+
+module.exports = { handleNotifyRequest, handleNotifyUser, handleNotifyAction };
