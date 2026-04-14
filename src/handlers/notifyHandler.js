@@ -131,6 +131,7 @@ async function handleNotifyAction({ ack, body, client, action }) {
       const { name: targetName } = analytics.getUser(pending.targetUserId);
       log.info('NOTIFY', `📨 DM sent to ${log.who(pending.targetUserId)} by ${log.who(userId)}`);
       analytics.track(userId, 'Single DM Sent', { target: pending.targetUserId, message: pending.messageText });
+      await logAudit({ userId, userType: 'hr_admin', action: 'broadcast', question: pending.messageText, answer: null, citedDoc: null });
     } catch (err) {
       await client.chat.update({ channel, ts: messageTs, blocks: [], text: `❌ Failed to send DM: ${err.message}` });
       return;
