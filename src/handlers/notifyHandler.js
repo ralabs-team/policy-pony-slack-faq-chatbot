@@ -132,6 +132,7 @@ async function handleNotifyAction({ ack, body, client, action }) {
 
   let sent = 0;
   let failed = 0;
+  let firstError = null;
 
   const BATCH_SIZE = 20;
   for (let i = 0; i < members.length; i += BATCH_SIZE) {
@@ -151,6 +152,7 @@ async function handleNotifyAction({ ack, body, client, action }) {
       else {
         failed++;
         log.warn('NOTIFY', `Failed to DM a member: ${result.reason?.message}`);
+        if (!firstError) firstError = result.reason?.message;
       }
     }
   }
@@ -164,7 +166,7 @@ async function handleNotifyAction({ ack, body, client, action }) {
     channel,
     ts: messageTs,
     blocks: [],
-    text: `✅ Message sent to *${sent}* people.${failed > 0 ? ` ${failed} failed — check Vercel logs.` : ''}`,
+    text: `✅ Message sent to *${sent}* people.${failed > 0 ? ` ${failed} failed.${firstError ? ` Error: \`${firstError}\`` : ' Check Vercel logs.'}` : ''}`,
   });
 }
 
