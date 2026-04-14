@@ -7,7 +7,7 @@ const { handleNotifyRequest } = require('./notifyHandler');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
-const NOTIFY_PATTERN = /^notify everyone:\s*(.+)/is;
+const NOTIFY_PATTERN = /^notify everyone(?:\s+in\s+<#([A-Z0-9]+)(?:\|[^>]+)?>)?:\s*(.+)/is;
 
 const HR_USER_IDS = (process.env.HR_USER_IDS || '')
   .split(',')
@@ -37,9 +37,10 @@ async function handleHrAdminDm({ message, client }) {
   // Broadcast to all users
   const notifyMatch = NOTIFY_PATTERN.exec(messageText);
   if (notifyMatch) {
-    const broadcastText = notifyMatch[1].trim();
-    log.info('HR', `📢 ${log.who(user)} triggered broadcast`);
-    return handleNotifyRequest(client, channel, ts, broadcastText, user);
+    const channelOverride = notifyMatch[1] || null;
+    const broadcastText = notifyMatch[2].trim();
+    log.info('HR', `📢 ${log.who(user)} triggered broadcast${channelOverride ? ` (channel: ${channelOverride})` : ''}`);
+    return handleNotifyRequest(client, channel, ts, broadcastText, user, channelOverride);
   }
 
   const intent = await detectHrIntent(messageText, hasFile);

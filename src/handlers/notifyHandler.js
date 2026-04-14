@@ -6,14 +6,14 @@ const log = require('../utils/logger');
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 const GENERAL_CHANNEL_ID = process.env.GENERAL_CHANNEL_ID;
 
-async function getGeneralChannelMembers(client) {
-  if (!GENERAL_CHANNEL_ID) throw new Error('GENERAL_CHANNEL_ID env variable is not set.');
+async function getChannelMembers(client, channelId) {
+  if (!channelId) throw new Error('GENERAL_CHANNEL_ID env variable is not set.');
 
   const memberIds = [];
   let cursor;
   do {
     const result = await client.conversations.members({
-      channel: GENERAL_CHANNEL_ID,
+      channel: channelId,
       limit: 200,
       ...(cursor ? { cursor } : {}),
     });
@@ -40,7 +40,7 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
-async function handleNotifyRequest(client, channel, ts, messageText, userId) {
+async function handleNotifyRequest(client, channel, ts, messageText, userId, channelOverride = null) {
   // Cooldown check
   const lastBroadcast = await getLastBroadcastTime();
   if (lastBroadcast) {
@@ -58,11 +58,12 @@ async function handleNotifyRequest(client, channel, ts, messageText, userId) {
   }
 
   // Fetch member count for preview
-  const members = await getGeneralChannelMembers(client);
+  const targetChannel = channelOverride || GENERAL_CHANNEL_ID;
+  const members = await getChannelMembers(client, targetChannel);
   const count = members.length;
 
   const actionId = randomUUID();
-  pendingNotifications.set(actionId, { messageText, userId, createdAt: Date.now() });
+  pendingNotifications.set(actionId, { messageText, userId, channelOverride, createdAt: Date.now() });
 
   await client.chat.postMessage({
     channel,
@@ -125,7 +126,7 @@ async function handleNotifyAction({ ack, body, client, action }) {
 
   await client.chat.update({ channel, ts: messageTs, blocks: [], text: '⏳ Sending messages...' });
 
-  const members = await getGeneralChannelMembers(client);
+  const members = await getChannelMembers(client, pending.channelOverride || GENERAL_CHANNEL_ID);
 
   log.info('NOTIFY', `📢 Broadcast started by ${log.who(userId)} — ${members.length} recipients`);
 
