@@ -4,11 +4,15 @@ const { detectHrIntent } = require('../services/llm');
 const { downloadSlackFile } = require('../utils/slack');
 const { handleEmployeeDm } = require('./employeeHandler');
 const { handleNotifyRequest, handleNotifyUser } = require('./notifyHandler');
+const { handleVoteRequest, handleVoteResults, handleCloseVote } = require('./voteHandler');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
 const NOTIFY_PATTERN = /^notify everyone(?:\s+in\s+<#([^|>]+)(?:\|[^>]+)?>)?:\s*(.+)/is;
 const NOTIFY_USER_PATTERN = /^notify\s+<@([A-Z0-9]+)(?:\|[^>]+)?>:\s*(.+)/is;
+const VOTE_PATTERN = /^vote(?:\s+in\s+<#([^|>]+)(?:\|[^>]+)?>)?(?:\s+everyone)?:\s*(.+)/is;
+const VOTE_RESULTS_PATTERN = /^vote results$/i;
+const CLOSE_VOTE_PATTERN = /^close vote$/i;
 
 const HR_USER_IDS = (process.env.HR_USER_IDS || '')
   .split(',')
@@ -67,6 +71,34 @@ async function handleHrAdminDm({ message, client }) {
         thread_ts: ts,
         text: `❌ Broadcast failed: ${err.message}`,
       });
+    }
+  }
+
+  if (VOTE_RESULTS_PATTERN.test(messageText)) {
+    log.info('HR', `${log.who(user)} requested vote results`);
+    return handleVoteResults(client, channel, ts, user);
+  }
+
+  if (CLOSE_VOTE_PATTERN.test(messageText)) {
+    log.info('HR', `${log.who(user)} requested close vote`);
+    return handleCloseVote(client, channel, ts, user);
+  }
+
+  const voteMatch = VOTE_PATTERN.exec(messageText);
+  if (voteMatch) {
+    const channelOverride = voteMatch[1] || null;
+    const rawContent = voteMatch[2].trim();
+    const parts = rawContent.split('|').map((s) => s.trim()).filter(Boolean);
+    const [question, ...options] = parts;
+    if (!question) {
+      return client.chat.postMessage({ channel, thread_ts: ts, text: 'Please provide a question for the vote.' });
+    }
+    log.info('HR', `${log.who(user)} triggered vote: "${question}" (${options.length} options)`);
+    try {
+      return await handleVoteRequest(client, channel, ts, question, options, user, channelOverride);
+    } catch (err) {
+      log.error('HR', `Vote request failed`, err);
+      return client.chat.postMessage({ channel, thread_ts: ts, text: `Failed to start vote: ${err.message}` });
     }
   }
 

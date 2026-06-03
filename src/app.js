@@ -5,6 +5,7 @@ const { handleBlockAction, handleDeleteDocRequest } = require('./handlers/hrAdmi
 const { handleUserRequestYes, handleUserRequestNo, handleFeedback } = require('./handlers/requestHandler');
 const { handleHelp } = require('./handlers/helpHandler');
 const { handleNotifyAction } = require('./handlers/notifyHandler');
+const { handleVoteConfirmAction, handleVoteResponse } = require('./handlers/voteHandler');
 const analytics = require('./services/analytics');
 const log = require('./utils/logger');
 
@@ -68,5 +69,11 @@ app.command('/pony-feedback', handleFeedback);
 
 // notify everyone broadcast actions
 app.action(/^(confirm|cancel)_notify_.+/, handleNotifyAction);
+
+// vote confirmation actions (HR confirm/cancel preview)
+app.action(/^(confirm|cancel)_vote_.+/, handleVoteConfirmAction);
+
+// vote response actions (employee clicks an option)
+app.action(/^vote_option_.+/, handleVoteResponse);
 
 module.exports = { app, receiver };

@@ -227,4 +227,4 @@ async function handleNotifyUser(client, channel, ts, messageText, userId, target
   });
 }
 
-module.exports = { handleNotifyRequest, handleNotifyUser, handleNotifyAction };
+module.exports = { handleNotifyRequest, handleNotifyUser, handleNotifyAction, getChannelMembers };

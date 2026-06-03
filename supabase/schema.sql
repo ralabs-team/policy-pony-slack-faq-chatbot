@@ -77,7 +77,34 @@ ALTER TABLE unanswered_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_requests ENABLE ROW LEVEL SECURITY;
 
--- 8. Similarity search function used by the RAG pipeline
+-- 9. Vote sessions (one row per HR-initiated vote)
+CREATE TABLE IF NOT EXISTS vote_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  question TEXT NOT NULL,
+  options JSONB NOT NULL,             -- ["Option A", "Option B", ...]
+  channel_id TEXT,                    -- source channel used to fetch members
+  recipient_count INT NOT NULL,       -- how many DMs were sent
+  recipients JSONB,                   -- [{userId, dmChannelId, messageTs}, ...]
+  created_by TEXT NOT NULL,           -- Slack user ID of HR admin
+  created_at TIMESTAMPTZ DEFAULT now(),
+  status TEXT DEFAULT 'active'        -- 'active' | 'closed'
+);
+
+-- 10. Individual vote responses (one row per person per vote)
+CREATE TABLE IF NOT EXISTS vote_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  vote_id UUID REFERENCES vote_sessions(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  user_name TEXT,
+  option_index INT NOT NULL,
+  voted_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(vote_id, user_id)
+);
+
+ALTER TABLE vote_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vote_responses ENABLE ROW LEVEL SECURITY;
+
+-- 11. Similarity search function used by the RAG pipeline
 CREATE OR REPLACE FUNCTION match_documents(
   query_embedding VECTOR(1536),
   match_threshold FLOAT,
