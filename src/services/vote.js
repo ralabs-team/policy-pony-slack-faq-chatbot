@@ -34,10 +34,10 @@ async function updateVoteRecipients(voteId, recipients) {
   if (error) throw new Error(`updateVoteRecipients: ${error.message}`);
 }
 
-async function recordVoteResponse({ voteId, userId, userName, optionIndex }) {
+async function recordVoteResponse({ voteId, userId, userName, optionIndex, optionText }) {
   const { error } = await supabase
     .from('vote_responses')
-    .insert({ vote_id: voteId, user_id: userId, user_name: userName, option_index: optionIndex });
+    .insert({ vote_id: voteId, user_id: userId, user_name: userName, option_index: optionIndex, option_text: optionText || null });
   if (error) {
     if (error.code === '23505') throw new Error('DUPLICATE');
     throw new Error(`recordVoteResponse: ${error.message}`);

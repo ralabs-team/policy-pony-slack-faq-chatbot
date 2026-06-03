@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS vote_responses (
   user_id TEXT NOT NULL,
   user_name TEXT,
   option_index INT NOT NULL,
+  option_text TEXT,
   voted_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(vote_id, user_id)
 );

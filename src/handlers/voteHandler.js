@@ -252,7 +252,7 @@ async function handleVoteResponse({ ack, body, client, action }) {
 
   const { name: userName } = analytics.getUser(userId);
   try {
-    await recordVoteResponse({ voteId, userId, userName, optionIndex });
+    await recordVoteResponse({ voteId, userId, userName, optionIndex, optionText: options[optionIndex] });
   } catch (err) {
     if (err.message === 'DUPLICATE') {
       // Race condition — re-fetch and show the existing vote
