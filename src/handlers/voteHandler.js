@@ -276,7 +276,7 @@ async function handleVoteResponse({ ack, body, client, action }) {
       channel,
       ts: messageTs,
       blocks: [],
-      text: `Thanks! You voted for *${options[optionIndex]}*. Results will be shared by HR.`,
+      text: `Thanks! You voted for *${options[optionIndex]}* on: _${session.question}_`,
     })
     .catch(() => {});
 
