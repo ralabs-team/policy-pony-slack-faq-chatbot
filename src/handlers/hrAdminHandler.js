@@ -4,15 +4,16 @@ const { detectHrIntent } = require('../services/llm');
 const { downloadSlackFile } = require('../utils/slack');
 const { handleEmployeeDm } = require('./employeeHandler');
 const { handleNotifyRequest, handleNotifyUser } = require('./notifyHandler');
-const { handleVoteRequest, handleVoteResults, handleCloseVote } = require('./voteHandler');
+const { handleVoteRequest, handleVoteResults, handleCloseVote, handleListActiveVotes } = require('./voteHandler');
 const analytics = require('../services/analytics');
 const log = require('../utils/logger');
 
 const NOTIFY_PATTERN = /^notify everyone(?:\s+in\s+<#([^|>]+)(?:\|[^>]+)?>)?:\s*(.+)/is;
 const NOTIFY_USER_PATTERN = /^notify\s+<@([A-Z0-9]+)(?:\|[^>]+)?>:\s*(.+)/is;
-const VOTE_PATTERN = /^vote(?:\s+in\s+<#([^|>]+)(?:\|[^>]+)?>)?(?:\s+everyone)?:\s*(.+)/is;
+const VOTE_PATTERN = /^vote(?:\s+(?:in\s+)?<#([^|>]+)(?:\|[^>]+)?>)?(?:\s+everyone)?:\s*(.+)/is;
 const VOTE_RESULTS_PATTERN = /^vote results$/i;
 const CLOSE_VOTE_PATTERN = /^close vote$/i;
+const ACTIVE_VOTES_PATTERN = /^active votes$/i;
 
 const HR_USER_IDS = (process.env.HR_USER_IDS || '')
   .split(',')
@@ -72,6 +73,11 @@ async function handleHrAdminDm({ message, client }) {
         text: `❌ Broadcast failed: ${err.message}`,
       });
     }
+  }
+
+  if (ACTIVE_VOTES_PATTERN.test(messageText)) {
+    log.info('HR', `${log.who(user)} requested active votes list`);
+    return handleListActiveVotes(client, channel, ts, user);
   }
 
   if (VOTE_RESULTS_PATTERN.test(messageText)) {

@@ -5,7 +5,7 @@ const { handleBlockAction, handleDeleteDocRequest } = require('./handlers/hrAdmi
 const { handleUserRequestYes, handleUserRequestNo, handleFeedback } = require('./handlers/requestHandler');
 const { handleHelp } = require('./handlers/helpHandler');
 const { handleNotifyAction } = require('./handlers/notifyHandler');
-const { handleVoteConfirmAction, handleVoteResponse } = require('./handlers/voteHandler');
+const { handleVoteConfirmAction, handleVoteResponse, handleVoteResultsButton, handleCloseVoteButton } = require('./handlers/voteHandler');
 const analytics = require('./services/analytics');
 const log = require('./utils/logger');
 
@@ -75,5 +75,9 @@ app.action(/^(confirm|cancel)_vote_.+/, handleVoteConfirmAction);
 
 // vote response actions (employee clicks an option)
 app.action(/^vote_option_.+/, handleVoteResponse);
+
+// active votes list — results and close buttons
+app.action(/^vote_show_results_.+/, handleVoteResultsButton);
+app.action(/^vote_close_.+/, handleCloseVoteButton);
 
 module.exports = { app, receiver };

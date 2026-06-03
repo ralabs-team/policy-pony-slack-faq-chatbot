@@ -140,6 +140,25 @@ async function getVotedUserIds(voteId) {
   return (data || []).map((r) => r.user_id);
 }
 
+async function getActiveVotes() {
+  const { data, error } = await supabase
+    .from('vote_sessions')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`getActiveVotes: ${error.message}`);
+  return data || [];
+}
+
+async function getResponseCount(voteId) {
+  const { count, error } = await supabase
+    .from('vote_responses')
+    .select('*', { count: 'exact', head: true })
+    .eq('vote_id', voteId);
+  if (error) throw new Error(`getResponseCount: ${error.message}`);
+  return count || 0;
+}
+
 module.exports = {
   createVoteSession,
   updateVoteRecipients,
@@ -151,4 +170,6 @@ module.exports = {
   closeVoteSession,
   getVoteResponseByUser,
   getVotedUserIds,
+  getActiveVotes,
+  getResponseCount,
 };

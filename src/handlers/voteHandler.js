@@ -12,6 +12,8 @@ const {
   closeVoteSession,
   getVoteResponseByUser,
   getVotedUserIds,
+  getActiveVotes,
+  getResponseCount,
 } = require('../services/vote');
 const { getChannelMembers } = require('./notifyHandler');
 
@@ -381,10 +383,165 @@ async function handleCloseVote(client, channel, ts, userId) {
   }
 }
 
+async function buildActiveVoteBlocks(sessions) {
+  if (sessions.length === 0) return null;
+
+  const blocks = [
+    { type: 'section', text: { type: 'mrkdwn', text: `*Active votes (${sessions.length}):*` } },
+    { type: 'divider' },
+  ];
+
+  for (const session of sessions) {
+    const count = await getResponseCount(session.id);
+    const question = session.question.length > 80 ? session.question.slice(0, 80) + '…' : session.question;
+    const { name: creatorName } = require('../services/analytics').getUser(session.created_by);
+
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `*${question}*\n${count} / ${session.recipient_count} answered  ·  _by ${creatorName}_` },
+    });
+    blocks.push({
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: 'Results' },
+          action_id: `vote_show_results_${session.id}`,
+          value: session.id,
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: 'Close vote' },
+          style: 'danger',
+          action_id: `vote_close_${session.id}`,
+          value: session.id,
+        },
+      ],
+    });
+    blocks.push({ type: 'divider' });
+  }
+
+  return blocks;
+}
+
+async function handleListActiveVotes(client, channel, ts, userId) {
+  let sessions;
+  try {
+    sessions = await getActiveVotes();
+  } catch (err) {
+    return client.chat.postMessage({ channel, thread_ts: ts, text: `Could not fetch active votes: ${err.message}` });
+  }
+
+  if (sessions.length === 0) {
+    return client.chat.postMessage({ channel, thread_ts: ts, text: 'No active votes at the moment.' });
+  }
+
+  const blocks = await buildActiveVoteBlocks(sessions);
+  await client.chat.postMessage({ channel, thread_ts: ts, blocks, text: `Active votes (${sessions.length})` });
+}
+
+async function handleVoteResultsButton({ ack, body, client, action }) {
+  await ack();
+
+  const voteId = action.value;
+  const channel = body.channel?.id;
+  const messageTs = body.message?.ts;
+
+  let results;
+  try {
+    results = await getVoteResults(voteId);
+  } catch (err) {
+    await client.chat.postMessage({ channel, text: `Could not fetch results: ${err.message}` });
+    return;
+  }
+
+  const text = formatResultsText(
+    results.question,
+    results.options,
+    results.counts,
+    results.responseCount,
+    results.recipientCount,
+    results.status
+  );
+
+  await client.chat.postMessage({ channel, thread_ts: messageTs, text });
+}
+
+async function handleCloseVoteButton({ ack, body, client, action }) {
+  await ack();
+
+  const voteId = action.value;
+  const userId = body.user?.id;
+  const channel = body.channel?.id;
+  const messageTs = body.message?.ts;
+
+  let session;
+  try {
+    session = await getVoteSession(voteId);
+  } catch (err) {
+    await client.chat.postMessage({ channel, text: `Could not fetch vote: ${err.message}` });
+    return;
+  }
+
+  if (session.status === 'closed') {
+    await client.chat.postMessage({ channel, thread_ts: messageTs, text: 'This vote is already closed.' });
+    return;
+  }
+
+  await closeVoteSession(voteId);
+  log.info('VOTE', `Vote "${session.question}" closed by ${log.who(userId)} via button [id: ${voteId.slice(0, 8)}...]`);
+
+  // Post final results as a reply to the list message
+  const results = await getVoteResults(voteId);
+  const text = formatResultsText(
+    results.question,
+    results.options,
+    results.counts,
+    results.responseCount,
+    results.recipientCount,
+    'closed'
+  );
+  await client.chat.postMessage({ channel, thread_ts: messageTs, text: `Vote closed.\n\n${text}` });
+
+  // Refresh the active votes list
+  const remaining = await getActiveVotes().catch(() => null);
+  if (remaining !== null) {
+    if (remaining.length === 0) {
+      await client.chat.update({ channel, ts: messageTs, blocks: [], text: 'No active votes at the moment.' }).catch(() => {});
+    } else {
+      const blocks = await buildActiveVoteBlocks(remaining);
+      await client.chat.update({ channel, ts: messageTs, blocks, text: `Active votes (${remaining.length})` }).catch(() => {});
+    }
+  }
+
+  // Update unvoted recipients' DMs
+  const recipients = Array.isArray(session.recipients) ? session.recipients : JSON.parse(session.recipients || '[]');
+  if (recipients.length === 0) return;
+
+  const votedIds = await getVotedUserIds(voteId).catch(() => []);
+  const votedSet = new Set(votedIds);
+  const unvoted = recipients.filter((r) => !votedSet.has(r.userId));
+
+  const BATCH_SIZE = 20;
+  for (let i = 0; i < unvoted.length; i += BATCH_SIZE) {
+    const batch = unvoted.slice(i, i + BATCH_SIZE);
+    await Promise.allSettled(
+      batch.map((r) =>
+        client.chat
+          .update({ channel: r.dmChannelId, ts: r.messageTs, blocks: [], text: 'This vote has been closed. No further responses are accepted.' })
+          .catch((err) => log.warn('VOTE', `Could not update closed DM for ${r.userId}: ${err.message}`))
+      )
+    );
+  }
+}
+
 module.exports = {
   handleVoteRequest,
   handleVoteConfirmAction,
   handleVoteResponse,
   handleVoteResults,
   handleCloseVote,
+  handleListActiveVotes,
+  handleVoteResultsButton,
+  handleCloseVoteButton,
 };
